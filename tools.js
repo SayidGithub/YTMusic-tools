@@ -380,7 +380,7 @@ window.downloadTTApiToDevice = function(targetUrl, ext, titlePrefix) {
     }
 };
 
-// // =========================================================================
+// // // =========================================================================
 // 5. INTERNET UPPING (SPEED TEST UPLOAD) - REAL SPEED & GRAPH
 // =========================================================================
 window.isNetTesting = false;
@@ -394,12 +394,12 @@ window.openNetworkTool = function() {
     document.getElementById('net-isp').innerText = "Memuat...";
     document.getElementById('net-speed-val').innerText = "0.00";
     
-    // API IP & ISP (Diperbaiki menggunakan ipwho.is yang stabil dan free CORS)
-    fetch('https://ipwho.is/')
+    // API IP & ISP Diperbarui (Menggunakan GeoJS yang 100% bebas blokir CORS)
+    fetch('https://get.geojs.io/v1/ip/geo.json')
         .then(res => res.json())
         .then(data => {
             document.getElementById('net-ip').innerText = data.ip || "Gagal";
-            document.getElementById('net-isp').innerText = (data.connection && data.connection.isp) ? data.connection.isp : (data.connection && data.connection.org ? data.connection.org : "Gagal");
+            document.getElementById('net-isp').innerText = data.organization || data.asn || "Gagal";
         }).catch(e => {
             document.getElementById('net-ip').innerText = "Error Jaringan";
             document.getElementById('net-isp').innerText = "Error Jaringan";
@@ -407,7 +407,7 @@ window.openNetworkTool = function() {
 };
 
 window.closeNetworkTool = function() {
-    if(window.isNetTesting) window.startUploadTest(); // Matikan otomatis jika sedang berjalan lalu diclose
+    if(window.isNetTesting) window.startUploadTest(); // Matikan otomatis jika keluar panel
     document.getElementById('network-tool-view').classList.remove('active');
 };
 
@@ -420,8 +420,8 @@ window.drawGraph = function() {
     
     if(window.graphData.length === 0) return;
     
-    let maxVal = Math.max(...window.graphData, 1); // Skala sumbu Y minimal 1 MB/s
-    let stepX = canvas.width / 19; // Jarak antar titik (menyimpan 20 history data)
+    let maxVal = Math.max(...window.graphData, 1);
+    let stepX = canvas.width / 19;
     
     ctx.beginPath();
     ctx.strokeStyle = '#00ff00';
@@ -430,13 +430,12 @@ window.drawGraph = function() {
     for(let i = 0; i < window.graphData.length; i++) {
         let x = i * stepX;
         let y = canvas.height - ((window.graphData[i] / maxVal) * canvas.height);
-        y = Math.max(5, Math.min(canvas.height - 2, y)); // Jaga titik agar tidak menabrak atap canvas
+        y = Math.max(5, Math.min(canvas.height - 2, y));
         if(i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
     }
     ctx.stroke();
     
-    // Efek shadow/fill di bawah garis
     ctx.lineTo(canvas.width, canvas.height);
     ctx.lineTo(0, canvas.height);
     ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
@@ -478,34 +477,41 @@ window.startUploadTest = async function() {
     // Timer pemutus otomatis setelah 2 Menit (120.000 ms)
     window.netTestTimeout = setTimeout(() => {
         if(window.isNetTesting) {
-            window.startUploadTest(); // Panggil diri sendiri untuk mematikan status
+            window.startUploadTest(); // Panggil fungsi stop
             window.showToast("Batas waktu uji (2 Menit) selesai.", "success");
         }
     }, 120000);
     
-    window.showToast("Memulai upload real-time (Max 2 Menit)...", "info");
+    window.showToast("Memompa trafik data ke jaringan WiFi...", "info");
     
-    // Menyiapkan Payload 2MB Data mentah untuk diupload berulang kali
-    const dataSize = 2 * 1024 * 1024;
+    // Memaksa browser menyiapkan Payload 2MB dan langsung menembak ke server
+    const dataSize = 2 * 1024 * 1024; // 2MB File Mentah
     const randomData = new Uint8Array(dataSize);
     for (let i = 0; i < dataSize; i++) { randomData[i] = Math.floor(Math.random() * 256); }
-    const blob = new Blob([randomData], { type: 'application/octet-stream' });
+    const blob = new Blob([randomData], { type: 'text/plain' }); // 'text/plain' untuk bypass preflight
     
+    const formData = new FormData();
+    formData.append('file', blob, 'trash.bin');
+
     // Looping Asli (Real Speed)
     while(window.isNetTesting) {
-        const startTime = new Date().getTime();
+        const startTime = performance.now();
         try {
-            // Upload ke server HTTPBIN (Server Cepat dan Stabil)
-            await fetch('https://httpbin.org/post', { method: 'POST', body: blob });
+            // Menggunakan endpoint Cloudflare Speedtest & no-cors (Pasti Tembus)
+            await fetch('https://speed.cloudflare.com/__up', { 
+                method: 'POST', 
+                body: formData,
+                mode: 'no-cors' 
+            });
             
-            const endTime = new Date().getTime();
+            const endTime = performance.now();
             const durationSec = (endTime - startTime) / 1000;
             let realSpeedMBps = (2 / durationSec); // Mengkalkulasi 2MB dibagi durasi waktu upload
             
             if(window.isNetTesting) {
                 speedVal.innerText = realSpeedMBps.toFixed(2);
                 window.graphData.push(realSpeedMBps);
-                if(window.graphData.length > 20) window.graphData.shift(); // Hanya menyimpan 20 History Data di grafik
+                if(window.graphData.length > 20) window.graphData.shift(); // Max 20 riwayat di grafik
                 window.drawGraph();
             }
         } catch(err) {
@@ -513,7 +519,7 @@ window.startUploadTest = async function() {
                 speedVal.innerText = '0.00';
                 window.graphData.push(0);
                 window.drawGraph();
-                await new Promise(r => setTimeout(r, 1000)); // Delay 1 detik jika koneksi tiba-tiba putus
+                await new Promise(r => setTimeout(r, 500)); // Delay 0.5 detik jika putus
             }
         }
     }
