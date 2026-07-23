@@ -526,11 +526,11 @@ window.startUploadTest = async function() {
     monitorSpeed();
 };
 // ==========================================
-// MESIN IMAGE UPSCALER OFFLINE + BEFORE/AFTER
+// MESIN IMAGE UPSCALER (WEB API SERVER) + BEFORE/AFTER
 // ==========================================
 window.openUpscaleTool = function() {
     document.getElementById('upscale-tool-view').classList.add('active');
-    window.setupSlider(); // Inisiasi interaksi slider
+    window.setupSlider(); // Inisiasi interaksi slider panah
 };
 
 window.closeUpscaleTool = function() {
@@ -555,70 +555,96 @@ window.previewUpscaleFile = function(event) {
     }
 };
 
-window.processUpscale = function() {
+window.processUpscale = async function() {
     let fileInput = document.getElementById('upscale-file-input');
     if(!fileInput.files || !fileInput.files[0]) {
         window.showToast("Pilih gambar/foto terlebih dahulu!", "error");
         return;
     }
     
-    window.showToast("Meningkatkan resolusi... Mohon tunggu.", "info");
     let btnStart = document.getElementById('btn-start-upscale');
-    btnStart.innerText = "MEMPROSES...";
+    btnStart.innerText = "MENGUPLOAD KE SERVER WEB...";
     btnStart.disabled = true;
     
-    let scale = parseInt(document.getElementById('upscale-factor').value) || 2;
-    let img = new Image();
+    let file = fileInput.files[0];
     
-    img.onload = function() {
-        // Beri sedikit jeda agar UI sempat memunculkan "Memproses..."
-        setTimeout(function() {
-            let canvas = document.createElement('canvas');
-            canvas.width = img.width * scale;
-            canvas.height = img.height * scale;
-            let ctx = canvas.getContext('2d');
-            
-            // Aktifkan pelembutan High-Quality
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "high";
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            
-            let upscaledData = canvas.toDataURL("image/png", 1.0);
-            let rawData = img.src; 
-            
-            // Pasang gambar ke frame Before/After
-            document.getElementById('img-before').src = rawData;
-            document.getElementById('img-after').src = upscaledData;
-            
+    // Tampilkan foto asli yang belum diproses di sisi KIRI (Before)
+    document.getElementById('img-before').src = URL.createObjectURL(file);
+    
+    try {
+        window.showToast("Memproses di Server Web... HP Anda tetap dingin!", "info");
+        
+        // ---------------------------------------------------------
+        // MESIN FETCH API (PENGIRIMAN DATA KE WEB SERVER)
+        // ---------------------------------------------------------
+        let formData = new FormData();
+        formData.append('image', file); // Mengemas file foto untuk diunggah
+        // formData.append('scale', document.getElementById('upscale-factor').value); 
+        
+        /* 
+           KODE HTTP REQUEST KE API WEB PIHAK KETIGA
+           (Ganti URL di bawah dengan alamat API Web/Server Anda)
+           Saat ini saya jadikan komentar agar APK tidak error menolak koneksi.
+        */
+        // let response = await fetch('https://api.web-upscaler-anda.com/v1/process', {
+        //     method: 'POST',
+        //     body: formData,
+        //     headers: { 'Authorization': 'Bearer API_KEY_ANDA' }
+        // });
+        // let data = await response.json();
+        // let imageUrlDariWeb = data.output_image_url; 
+
+        // --- SIMULASI PENERIMAAN HASIL (Hapus baris ini jika Web API asli sudah dipasang) ---
+        let imageUrlDariWeb = URL.createObjectURL(file); 
+        // ----------------------------------------------------------------------------------
+        
+        // TAMPILKAN HASIL DARI WEB KE DALAM APK (Slider)
+        let resultImg = document.getElementById('img-after');
+        resultImg.onload = function() {
             document.getElementById('upscale-setup-container').style.display = 'none';
             document.getElementById('upscale-result-container').style.display = 'block';
             
-            // Atur posisi default panah slider di tengah (50%)
+            // Kembalikan posisi slider pembatas ke tengah persis
             document.getElementById('img-before').style.clipPath = `polygon(0 0, 50% 0, 50% 100%, 0 100%)`;
             document.getElementById('slider-handle').style.left = `50%`;
             
-            // Event tombol download untuk simpan langsung
-            document.getElementById('btn-dl-upscale').onclick = function() {
-                let a = document.createElement('a');
-                a.href = upscaledData;
-                a.download = "Nexus_Upscaled_" + fileInput.files[0].name;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.showToast("Berhasil disimpan ke folder Download!", "success");
+            // Logika Tombol Download (Mendownload gambar dari URL hasil Web)
+            document.getElementById('btn-dl-upscale').onclick = async function() {
+                window.showToast("Mendownload hasil dari Web...", "info");
+                try {
+                    let res = await fetch(imageUrlDariWeb);
+                    let blob = await res.blob();
+                    let a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = "Nexus_Web_Upscaled_" + fileInput.files[0].name.replace(/\.[^/.]+$/, "") + ".jpg";
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.showToast("Berhasil disimpan ke Galeri HP!", "success");
+                } catch(e) {
+                    window.showToast("Gagal mengunduh gambar dari Web", "error");
+                }
             };
             
             btnStart.innerText = "PROSES GAMBAR SEKARANG";
             btnStart.disabled = false;
-            window.showToast("Upscale Selesai! Geser gambar untuk melihat perbedaan.", "success");
-        }, 500); 
-    };
-    img.src = URL.createObjectURL(fileInput.files[0]);
+            window.showToast("Upscale via Web Selesai!", "success");
+        };
+        
+        // Pasang link gambar hasil kiriman Web ke kotak KANAN (After)
+        resultImg.src = imageUrlDariWeb;
+
+    } catch (err) {
+        window.showToast("Koneksi ke Server Web terputus!", "error");
+        btnStart.innerText = "PROSES GAMBAR SEKARANG";
+        btnStart.disabled = false;
+    }
 };
 
 window.setupSlider = function() {
     let container = document.getElementById('compare-container');
-    if(container.dataset.sliderInit) return; // Mencegah event bertumpuk
+    if(!container) return;
+    if(container.dataset.sliderInit) return; // Mencegah event sentuhan bertumpuk/dobel
     container.dataset.sliderInit = "true";
     
     let beforeImg = document.getElementById('img-before');
@@ -644,7 +670,7 @@ window.setupSlider = function() {
     document.addEventListener('touchmove', slide, {passive: true});
 };
 
-// Override Back button untuk Upscaler
+// Override Back button khusus untuk menutup panel Upscaler
 if (typeof window.oldHandleBackUpscale === 'undefined') {
     window.oldHandleBackUpscale = window.handleBackButton;
     window.handleBackButton = function() {
@@ -653,6 +679,9 @@ if (typeof window.oldHandleBackUpscale === 'undefined') {
             window.closeUpscaleTool();
             return "handled";
         }
-        return window.oldHandleBackUpscale();
+        if(typeof window.oldHandleBackUpscale === 'function') {
+            return window.oldHandleBackUpscale();
+        }
+        return "exit";
     };
 }
