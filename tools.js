@@ -380,8 +380,8 @@ window.downloadTTApiToDevice = function(targetUrl, ext, titlePrefix) {
     }
 };
 
-// // // // =========================================================================
-// 5. INTERNET UPPING (SPEED TEST UPLOAD) - REAL MAX SPEED CONCURRENT
+// // // // // =========================================================================
+// 5. INTERNET UPPING (SPEED TEST UPLOAD) - VIA PYTHON BACKEND (NATIVE SPEED)
 // =========================================================================
 window.isNetTesting = false;
 window.netTestTimeout = null;
@@ -394,7 +394,7 @@ window.openNetworkTool = function() {
     document.getElementById('net-isp').innerText = "Memuat...";
     document.getElementById('net-speed-val').innerText = "0.00";
     
-    // API IP & ISP (Sudah berhasil seperti di screenshot Anda)
+    // API IP & ISP (Menggunakan GeoJS yang 100% bebas blokir CORS)
     fetch('https://get.geojs.io/v1/ip/geo.json')
         .then(res => res.json())
         .then(data => {
@@ -407,10 +407,11 @@ window.openNetworkTool = function() {
 };
 
 window.closeNetworkTool = function() {
-    if(window.isNetTesting) window.startUploadTest(); 
+    if(window.isNetTesting) window.startUploadTest(); // Matikan otomatis jika keluar panel
     document.getElementById('network-tool-view').classList.remove('active');
 };
 
+// Fungsi Menggambar Grafik Real-time
 window.drawGraph = function() {
     let canvas = document.getElementById('speedGraph');
     if(!canvas) return;
@@ -456,6 +457,10 @@ window.startUploadTest = async function() {
         btn.style.color = '#000';
         btn.style.boxShadow = '0 0 15px rgba(0,255,0,0.4)';
         circle.style.display = 'none';
+        
+        // Perintahkan Python untuk STOP
+        fetch('/stop_upping', { method: 'POST' }).catch(e=>console.log(e));
+        
         window.showToast("Proses dihentikan.", "info");
         return;
     }
@@ -481,75 +486,42 @@ window.startUploadTest = async function() {
         }
     }, 120000);
     
-    window.showToast("Memompa trafik data maksimum (Concurrent)...", "info");
+    window.showToast("Menjalankan mesin native Python (UDP)...", "info");
     
-    // Menyiapkan 10MB payload mentah yang lebih ringan di browser
-    const dataSize = 10 * 1024 * 1024;
-    const randomData = new Uint8Array(dataSize);
-    for (let i = 0; i < dataSize; i++) { randomData[i] = i % 256; }
-    const blob = new Blob([randomData], { type: 'text/plain' });
-    
-    let totalUploadedBytes = 0;
-    let lastTime = performance.now();
-    
-    // Menjalankan 5 Proses Upload Secara Bersamaan (Concurrent Workers)
-    const workerTask = async () => {
-        while(window.isNetTesting) {
-            try {
-                await fetch('https://speed.cloudflare.com/__up', { 
-                    method: 'POST', 
-                    body: blob,
-                    mode: 'no-cors' 
-                });
-                totalUploadedBytes += dataSize;
-            } catch(e) {
-                await new Promise(r => setTimeout(r, 100)); // Jeda 0.1 detik jika gagal
+    // Perintahkan Python untuk START
+    fetch('/start_upping', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status !== 'success') {
+                window.showToast("Gagal memulai mesin Python.", "error");
+                window.startUploadTest(); 
             }
-        }
-    };
+        }).catch(e => {
+            window.showToast("Gagal koneksi ke app.py", "error");
+            window.startUploadTest(); 
+        });
 
-    // Eksekusi ke-5 worker sekaligus
-    for(let i = 0; i < 5; i++) { workerTask(); }
-    
-    // Monitor kecepatan dan update grafik setiap 1 detik
+    // Loop bertanya ke Python: "Kecepatan sekarang berapa?" setiap 1 detik
     const monitorSpeed = async () => {
         while(window.isNetTesting) {
             await new Promise(r => setTimeout(r, 1000));
-            let currentTime = performance.now();
-            let durationSec = (currentTime - lastTime) / 1000;
+            if(!window.isNetTesting) break;
             
-            // Hitung MB/s aktual
-            let speedMBps = (totalUploadedBytes / (1024 * 1024)) / durationSec;
-            
-            // Reset counter untuk detik berikutnya
-            totalUploadedBytes = 0;
-            lastTime = currentTime;
-            
-            if(window.isNetTesting) {
+            try {
+                let res = await fetch('/status_upping');
+                let data = await res.json();
+                
+                let speedMBps = data.speed_mbps || 0;
                 speedVal.innerText = speedMBps.toFixed(2);
+                
                 window.graphData.push(speedMBps);
-                if(window.graphData.length > 20) window.graphData.shift();
+                if(window.graphData.length > 20) window.graphData.shift(); // Max 20 history
                 window.drawGraph();
+            } catch(e) {
+                // Abaikan jika lag
             }
         }
     };
     
     monitorSpeed();
-};
-
-            if(window.isNetTesting) {
-                speedVal.innerText = realSpeedMBps.toFixed(2);
-                window.graphData.push(realSpeedMBps);
-                if(window.graphData.length > 20) window.graphData.shift(); // Max 20 riwayat di grafik
-                window.drawGraph();
-            }
-        } catch(err) {
-            if(window.isNetTesting) {
-                speedVal.innerText = '0.00';
-                window.graphData.push(0);
-                window.drawGraph();
-                await new Promise(r => setTimeout(r, 500)); // Delay 0.5 detik jika putus
-            }
-        }
-    }
 };
