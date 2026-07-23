@@ -526,17 +526,21 @@ window.startUploadTest = async function() {
     monitorSpeed();
 };
 // ==========================================
-// MESIN IMAGE UPSCALER OFFLINE (HTML5 CANVAS)
+// MESIN IMAGE UPSCALER OFFLINE + BEFORE/AFTER
 // ==========================================
 window.openUpscaleTool = function() {
     document.getElementById('upscale-tool-view').classList.add('active');
+    window.setupSlider(); // Inisiasi interaksi slider
 };
 
 window.closeUpscaleTool = function() {
     document.getElementById('upscale-tool-view').classList.remove('active');
-    // Reset form saat ditutup
+};
+
+window.resetUpscale = function() {
     document.getElementById('upscale-raw-preview').style.display = 'none';
     document.getElementById('upscale-result-container').style.display = 'none';
+    document.getElementById('upscale-setup-container').style.display = 'block';
     document.getElementById('upscale-file-input').value = '';
 };
 
@@ -559,51 +563,88 @@ window.processUpscale = function() {
     }
     
     window.showToast("Meningkatkan resolusi... Mohon tunggu.", "info");
+    let btnStart = document.getElementById('btn-start-upscale');
+    btnStart.innerText = "MEMPROSES...";
+    btnStart.disabled = true;
     
     let scale = parseInt(document.getElementById('upscale-factor').value) || 2;
     let img = new Image();
     
     img.onload = function() {
-        // Buat canvas virtual untuk merender ulang gambar
-        let canvas = document.createElement('canvas');
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        
-        let ctx = canvas.getContext('2d');
-        // Aktifkan pelembutan High-Quality untuk menghilangkan pecah/pixel
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        
-        // Gambar ulang di canvas dengan ukuran baru
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        // Convert kembali ke Base64 / File Gambar
-        let upscaledData = canvas.toDataURL("image/png", 1.0);
-        
-        let previewEl = document.getElementById('upscale-preview');
-        previewEl.src = upscaledData;
-        
-        document.getElementById('upscale-result-container').style.display = 'block';
-        
-        // Pasang event klik ke tombol Download
-        document.getElementById('btn-dl-upscale').onclick = function() {
-            let a = document.createElement('a');
-            a.href = upscaledData;
-            a.download = "Nexus_Upscaled_" + fileInput.files[0].name;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.showToast("Berhasil diunduh ke memori HP!", "success");
-        };
-        
-        window.showToast("Upscale Selesai!", "success");
+        // Beri sedikit jeda agar UI sempat memunculkan "Memproses..."
+        setTimeout(function() {
+            let canvas = document.createElement('canvas');
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            let ctx = canvas.getContext('2d');
+            
+            // Aktifkan pelembutan High-Quality
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            let upscaledData = canvas.toDataURL("image/png", 1.0);
+            let rawData = img.src; 
+            
+            // Pasang gambar ke frame Before/After
+            document.getElementById('img-before').src = rawData;
+            document.getElementById('img-after').src = upscaledData;
+            
+            document.getElementById('upscale-setup-container').style.display = 'none';
+            document.getElementById('upscale-result-container').style.display = 'block';
+            
+            // Atur posisi default panah slider di tengah (50%)
+            document.getElementById('img-before').style.clipPath = `polygon(0 0, 50% 0, 50% 100%, 0 100%)`;
+            document.getElementById('slider-handle').style.left = `50%`;
+            
+            // Event tombol download untuk simpan langsung
+            document.getElementById('btn-dl-upscale').onclick = function() {
+                let a = document.createElement('a');
+                a.href = upscaledData;
+                a.download = "Nexus_Upscaled_" + fileInput.files[0].name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.showToast("Berhasil disimpan ke folder Download!", "success");
+            };
+            
+            btnStart.innerText = "PROSES GAMBAR SEKARANG";
+            btnStart.disabled = false;
+            window.showToast("Upscale Selesai! Geser gambar untuk melihat perbedaan.", "success");
+        }, 500); 
     };
-    
-    // Mulai proses
     img.src = URL.createObjectURL(fileInput.files[0]);
 };
 
-// Pencegat tombol back untuk panel Upscale
+window.setupSlider = function() {
+    let container = document.getElementById('compare-container');
+    if(container.dataset.sliderInit) return; // Mencegah event bertumpuk
+    container.dataset.sliderInit = "true";
+    
+    let beforeImg = document.getElementById('img-before');
+    let handle = document.getElementById('slider-handle');
+    let isSliding = false;
+    
+    let slide = function(e) {
+        if(!isSliding) return;
+        let rect = container.getBoundingClientRect();
+        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let x = clientX - rect.left;
+        let pct = Math.max(0, Math.min(100, (x / rect.width) * 100)); // Batasi 0% - 100%
+        
+        beforeImg.style.clipPath = `polygon(0 0, ${pct}% 0, ${pct}% 100%, 0 100%)`;
+        handle.style.left = `${pct}%`;
+    };
+
+    container.addEventListener('mousedown', () => isSliding = true);
+    container.addEventListener('touchstart', () => isSliding = true, {passive: true});
+    document.addEventListener('mouseup', () => isSliding = false);
+    document.addEventListener('touchend', () => isSliding = false);
+    document.addEventListener('mousemove', slide);
+    document.addEventListener('touchmove', slide, {passive: true});
+};
+
+// Override Back button untuk Upscaler
 if (typeof window.oldHandleBackUpscale === 'undefined') {
     window.oldHandleBackUpscale = window.handleBackButton;
     window.handleBackButton = function() {
