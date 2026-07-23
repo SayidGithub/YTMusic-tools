@@ -525,3 +525,93 @@ window.startUploadTest = async function() {
     
     monitorSpeed();
 };
+// ==========================================
+// MESIN IMAGE UPSCALER OFFLINE (HTML5 CANVAS)
+// ==========================================
+window.openUpscaleTool = function() {
+    document.getElementById('upscale-tool-view').classList.add('active');
+};
+
+window.closeUpscaleTool = function() {
+    document.getElementById('upscale-tool-view').classList.remove('active');
+    // Reset form saat ditutup
+    document.getElementById('upscale-raw-preview').style.display = 'none';
+    document.getElementById('upscale-result-container').style.display = 'none';
+    document.getElementById('upscale-file-input').value = '';
+};
+
+window.previewUpscaleFile = function(event) {
+    let file = event.target.files[0];
+    if(file) {
+        let imgPreview = document.getElementById('upscale-raw-preview');
+        imgPreview.src = URL.createObjectURL(file);
+        imgPreview.style.display = 'block';
+        document.getElementById('upscale-result-container').style.display = 'none';
+        window.showToast("Gambar dipilih. Siap di-upscale!", "info");
+    }
+};
+
+window.processUpscale = function() {
+    let fileInput = document.getElementById('upscale-file-input');
+    if(!fileInput.files || !fileInput.files[0]) {
+        window.showToast("Pilih gambar/foto terlebih dahulu!", "error");
+        return;
+    }
+    
+    window.showToast("Meningkatkan resolusi... Mohon tunggu.", "info");
+    
+    let scale = parseInt(document.getElementById('upscale-factor').value) || 2;
+    let img = new Image();
+    
+    img.onload = function() {
+        // Buat canvas virtual untuk merender ulang gambar
+        let canvas = document.createElement('canvas');
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        
+        let ctx = canvas.getContext('2d');
+        // Aktifkan pelembutan High-Quality untuk menghilangkan pecah/pixel
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        
+        // Gambar ulang di canvas dengan ukuran baru
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // Convert kembali ke Base64 / File Gambar
+        let upscaledData = canvas.toDataURL("image/png", 1.0);
+        
+        let previewEl = document.getElementById('upscale-preview');
+        previewEl.src = upscaledData;
+        
+        document.getElementById('upscale-result-container').style.display = 'block';
+        
+        // Pasang event klik ke tombol Download
+        document.getElementById('btn-dl-upscale').onclick = function() {
+            let a = document.createElement('a');
+            a.href = upscaledData;
+            a.download = "Nexus_Upscaled_" + fileInput.files[0].name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.showToast("Berhasil diunduh ke memori HP!", "success");
+        };
+        
+        window.showToast("Upscale Selesai!", "success");
+    };
+    
+    // Mulai proses
+    img.src = URL.createObjectURL(fileInput.files[0]);
+};
+
+// Pencegat tombol back untuk panel Upscale
+if (typeof window.oldHandleBackUpscale === 'undefined') {
+    window.oldHandleBackUpscale = window.handleBackButton;
+    window.handleBackButton = function() {
+        let upPanel = document.getElementById('upscale-tool-view');
+        if(upPanel && upPanel.classList.contains('active')) {
+            window.closeUpscaleTool();
+            return "handled";
+        }
+        return window.oldHandleBackUpscale();
+    };
+}
