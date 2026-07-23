@@ -380,8 +380,8 @@ window.downloadTTApiToDevice = function(targetUrl, ext, titlePrefix) {
     }
 };
 
-// // // =========================================================================
-// 5. INTERNET UPPING (SPEED TEST UPLOAD) - REAL SPEED & GRAPH
+// // // // =========================================================================
+// 5. INTERNET UPPING (SPEED TEST UPLOAD) - REAL MAX SPEED CONCURRENT
 // =========================================================================
 window.isNetTesting = false;
 window.netTestTimeout = null;
@@ -394,7 +394,7 @@ window.openNetworkTool = function() {
     document.getElementById('net-isp').innerText = "Memuat...";
     document.getElementById('net-speed-val').innerText = "0.00";
     
-    // API IP & ISP Diperbarui (Menggunakan GeoJS yang 100% bebas blokir CORS)
+    // API IP & ISP (Sudah berhasil seperti di screenshot Anda)
     fetch('https://get.geojs.io/v1/ip/geo.json')
         .then(res => res.json())
         .then(data => {
@@ -407,11 +407,10 @@ window.openNetworkTool = function() {
 };
 
 window.closeNetworkTool = function() {
-    if(window.isNetTesting) window.startUploadTest(); // Matikan otomatis jika keluar panel
+    if(window.isNetTesting) window.startUploadTest(); 
     document.getElementById('network-tool-view').classList.remove('active');
 };
 
-// Fungsi Menggambar Grafik Real-time
 window.drawGraph = function() {
     let canvas = document.getElementById('speedGraph');
     if(!canvas) return;
@@ -461,9 +460,9 @@ window.startUploadTest = async function() {
         return;
     }
     
-    // --- LOGIKA UNTUK START ---
     if(window.isOfflineMode) { window.showToast("Matikan Mode Offline!", "error"); return; }
     
+    // --- LOGIKA UNTUK START ---
     window.isNetTesting = true;
     btn.innerText = 'STOP PROSES UPLOAD';
     btn.style.background = '#ff003c';
@@ -474,40 +473,70 @@ window.startUploadTest = async function() {
     window.graphData = [];
     window.drawGraph();
     
-    // Timer pemutus otomatis setelah 2 Menit (120.000 ms)
+    // Auto Stop 2 Menit
     window.netTestTimeout = setTimeout(() => {
         if(window.isNetTesting) {
-            window.startUploadTest(); // Panggil fungsi stop
+            window.startUploadTest();
             window.showToast("Batas waktu uji (2 Menit) selesai.", "success");
         }
     }, 120000);
     
-    window.showToast("Memompa trafik data ke jaringan WiFi...", "info");
+    window.showToast("Memompa trafik data maksimum (Concurrent)...", "info");
     
-    // Memaksa browser menyiapkan Payload 2MB dan langsung menembak ke server
-    const dataSize = 2 * 1024 * 1024; // 2MB File Mentah
+    // Menyiapkan 10MB payload mentah yang lebih ringan di browser
+    const dataSize = 10 * 1024 * 1024;
     const randomData = new Uint8Array(dataSize);
-    for (let i = 0; i < dataSize; i++) { randomData[i] = Math.floor(Math.random() * 256); }
-    const blob = new Blob([randomData], { type: 'text/plain' }); // 'text/plain' untuk bypass preflight
+    for (let i = 0; i < dataSize; i++) { randomData[i] = i % 256; }
+    const blob = new Blob([randomData], { type: 'text/plain' });
     
-    const formData = new FormData();
-    formData.append('file', blob, 'trash.bin');
+    let totalUploadedBytes = 0;
+    let lastTime = performance.now();
+    
+    // Menjalankan 5 Proses Upload Secara Bersamaan (Concurrent Workers)
+    const workerTask = async () => {
+        while(window.isNetTesting) {
+            try {
+                await fetch('https://speed.cloudflare.com/__up', { 
+                    method: 'POST', 
+                    body: blob,
+                    mode: 'no-cors' 
+                });
+                totalUploadedBytes += dataSize;
+            } catch(e) {
+                await new Promise(r => setTimeout(r, 100)); // Jeda 0.1 detik jika gagal
+            }
+        }
+    };
 
-    // Looping Asli (Real Speed)
-    while(window.isNetTesting) {
-        const startTime = performance.now();
-        try {
-            // Menggunakan endpoint Cloudflare Speedtest & no-cors (Pasti Tembus)
-            await fetch('https://speed.cloudflare.com/__up', { 
-                method: 'POST', 
-                body: formData,
-                mode: 'no-cors' 
-            });
+    // Eksekusi ke-5 worker sekaligus
+    for(let i = 0; i < 5; i++) { workerTask(); }
+    
+    // Monitor kecepatan dan update grafik setiap 1 detik
+    const monitorSpeed = async () => {
+        while(window.isNetTesting) {
+            await new Promise(r => setTimeout(r, 1000));
+            let currentTime = performance.now();
+            let durationSec = (currentTime - lastTime) / 1000;
             
-            const endTime = performance.now();
-            const durationSec = (endTime - startTime) / 1000;
-            let realSpeedMBps = (2 / durationSec); // Mengkalkulasi 2MB dibagi durasi waktu upload
+            // Hitung MB/s aktual
+            let speedMBps = (totalUploadedBytes / (1024 * 1024)) / durationSec;
             
+            // Reset counter untuk detik berikutnya
+            totalUploadedBytes = 0;
+            lastTime = currentTime;
+            
+            if(window.isNetTesting) {
+                speedVal.innerText = speedMBps.toFixed(2);
+                window.graphData.push(speedMBps);
+                if(window.graphData.length > 20) window.graphData.shift();
+                window.drawGraph();
+            }
+        }
+    };
+    
+    monitorSpeed();
+};
+
             if(window.isNetTesting) {
                 speedVal.innerText = realSpeedMBps.toFixed(2);
                 window.graphData.push(realSpeedMBps);
