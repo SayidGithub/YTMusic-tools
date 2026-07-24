@@ -3,9 +3,7 @@
 // =========================================================================
 window.currentTikTokData = null;
 
-window.openTikTokTool = function() {
-    document.getElementById('tiktok-tool-view').classList.add('active');
-};
+window.openTikTokTool = function() { document.getElementById('tiktok-tool-view').classList.add('active'); };
 window.closeTikTokTool = function() {
     document.getElementById('tiktok-tool-view').classList.remove('active');
     let vid = document.getElementById('tiktok-video-preview'); if(vid) { vid.pause(); vid.src = ""; }
@@ -16,54 +14,37 @@ window.processTikTokAJAX = function() {
     let url = document.getElementById('tiktok-url-input-tool').value.trim();
     if(!url) { window.showToast("URL TikTok tidak boleh kosong!", "error"); return; }
     
-    document.getElementById('tiktok-tool-result').style.display = 'block';
-    document.getElementById('tiktok-tool-status').style.display = 'block';
-    document.getElementById('tiktok-tool-data').style.display = 'none';
-    document.getElementById('tiktok-dl-progress').style.display = 'none';
+    document.getElementById('tiktok-tool-result').style.display = 'block'; document.getElementById('tiktok-tool-status').style.display = 'block'; document.getElementById('tiktok-tool-data').style.display = 'none'; document.getElementById('tiktok-dl-progress').style.display = 'none';
     document.getElementById('tiktok-tool-status').innerHTML = '<svg class="spin-anim" viewBox="0 0 24 24" style="width:20px;height:20px;fill:var(--accent);vertical-align:middle;margin-right:5px;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg> Mengekstrak data tanpa watermark...';
     
     let formData = new FormData(); formData.append('url', url);
-    fetch('https://www.tikwm.com/api/', { method: 'POST', body: formData })
-    .then(res => res.json())
-    .then(data => {
+    fetch('https://www.tikwm.com/api/', { method: 'POST', body: formData }).then(res => res.json()).then(data => {
         if(data.code === 0 && data.data) {
             window.currentTikTokData = data.data;
-            document.getElementById('tiktok-tool-status').style.display = 'none';
-            document.getElementById('tiktok-tool-data').style.display = 'flex';
+            document.getElementById('tiktok-tool-status').style.display = 'none'; document.getElementById('tiktok-tool-data').style.display = 'flex';
             document.getElementById('tiktok-tool-title').innerText = data.data.title || 'Post TikTok';
             document.getElementById('tiktok-tool-author').innerText = data.data.author && data.data.author.unique_id ? '@' + data.data.author.unique_id : 'TikTok User';
             
             if(data.data.images && data.data.images.length > 0) {
-                document.getElementById('tiktok-video-preview').style.display = 'none';
-                document.getElementById('tiktok-image-preview').style.display = 'flex';
-                document.getElementById('tiktok-slide-indicator').style.display = 'block';
-                document.getElementById('tiktok-resolution-container').style.display = 'none';
+                document.getElementById('tiktok-video-preview').style.display = 'none'; document.getElementById('tiktok-image-preview').style.display = 'flex'; document.getElementById('tiktok-slide-indicator').style.display = 'block'; document.getElementById('tiktok-resolution-container').style.display = 'none';
                 let imgContainer = document.getElementById('tiktok-image-preview'); imgContainer.innerHTML = '';
                 data.data.images.forEach((imgUrl, idx) => {
                     imgContainer.innerHTML += `<div style="position:relative; min-width:100%; scroll-snap-align: center;"><img src="${imgUrl}" style="width:100%; max-height:400px; object-fit:contain; border-radius:8px;"><button onclick="window.downloadTTApiToDevice('${imgUrl}', 'jpg', 'TikTok_Slide_${idx+1}')" style="position:absolute; bottom:10px; right:10px; background:var(--primary); color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:bold; box-shadow:0 0 10px rgba(0,0,0,0.8); cursor:pointer;">📥 Unduh Foto ${idx+1}</button></div>`;
                 });
                 let aud = document.getElementById('tiktok-audio-preview');
                 if(data.data.music) { aud.src = data.data.music; aud.style.display = 'block'; } else { aud.style.display = 'none'; }
-                document.getElementById('tiktok-dl-type-txt').innerText = "Unduh Foto (Semua)";
-                document.getElementById('tiktok-tool-dl-mp4').setAttribute('onclick', "window.downloadTikTokAllImages()");
+                document.getElementById('tiktok-dl-type-txt').innerText = "Unduh Foto (Semua)"; document.getElementById('tiktok-tool-dl-mp4').setAttribute('onclick', "window.downloadTikTokAllImages()");
             } else {
-                document.getElementById('tiktok-video-preview').style.display = 'block';
-                document.getElementById('tiktok-image-preview').style.display = 'none';
-                document.getElementById('tiktok-slide-indicator').style.display = 'none';
-                document.getElementById('tiktok-resolution-container').style.display = 'block';
-                document.getElementById('tiktok-audio-preview').style.display = 'none';
-                document.getElementById('tiktok-dl-type-txt').innerText = "Unduh MP4";
-                document.getElementById('tiktok-tool-dl-mp4').setAttribute('onclick', "window.downloadTikTokFile('mp4')");
+                document.getElementById('tiktok-video-preview').style.display = 'block'; document.getElementById('tiktok-image-preview').style.display = 'none'; document.getElementById('tiktok-slide-indicator').style.display = 'none'; document.getElementById('tiktok-resolution-container').style.display = 'block'; document.getElementById('tiktok-audio-preview').style.display = 'none';
+                document.getElementById('tiktok-dl-type-txt').innerText = "Unduh MP4"; document.getElementById('tiktok-tool-dl-mp4').setAttribute('onclick', "window.downloadTikTokFile('mp4')");
                 window.changeTikTokRes();
             }
             window.showToast("Berhasil mengambil data TikTok!", "success");
         } else {
-            document.getElementById('tiktok-tool-status').innerText = "Gagal memproses. Pastikan link valid dan post tidak diprivat.";
-            window.showToast("Gagal memproses link TikTok", "error");
+            document.getElementById('tiktok-tool-status').innerText = "Gagal memproses. Pastikan link valid dan post tidak diprivat."; window.showToast("Gagal memproses link TikTok", "error");
         }
     }).catch(e => {
-        document.getElementById('tiktok-tool-status').innerText = "Gagal terhubung ke server. (Cek koneksi internet Anda)";
-        window.showToast("Error jaringan saat memproses TikTok", "error");
+        document.getElementById('tiktok-tool-status').innerText = "Gagal terhubung ke server. (Cek koneksi internet Anda)"; window.showToast("Error jaringan saat memproses TikTok", "error");
     });
 };
 window.changeTikTokRes = function() {
@@ -75,11 +56,8 @@ window.changeTikTokRes = function() {
 };
 window.downloadTikTokFile = function(type) {
     if(!window.currentTikTokData) return;
-    let sel = document.getElementById('tiktok-resolution-select').value;
-    let videoUrl = (sel === 'hd' && window.currentTikTokData.hdplay) ? window.currentTikTokData.hdplay : window.currentTikTokData.play;
-    let audioUrl = window.currentTikTokData.music;
-    let targetUrl = (type === 'mp3') ? audioUrl : videoUrl;
-    let ext = (type === 'mp3') ? 'mp3' : 'mp4';
+    let sel = document.getElementById('tiktok-resolution-select').value; let videoUrl = (sel === 'hd' && window.currentTikTokData.hdplay) ? window.currentTikTokData.hdplay : window.currentTikTokData.play;
+    let audioUrl = window.currentTikTokData.music; let targetUrl = (type === 'mp3') ? audioUrl : videoUrl; let ext = (type === 'mp3') ? 'mp3' : 'mp4';
     let title = window.currentTikTokData.title ? window.currentTikTokData.title.substring(0,25) : 'TikTok_Video';
     window.downloadTTApiToDevice(targetUrl, ext, title);
 };
@@ -105,34 +83,23 @@ window.processIgAJAX = function() {
     let url = document.getElementById('ig-url-input-tool').value.trim();
     if(!url) { window.showToast("URL Instagram tidak boleh kosong!", "error"); return; }
     
-    document.getElementById('ig-tool-result').style.display = 'block';
-    document.getElementById('ig-tool-status').style.display = 'block';
-    document.getElementById('ig-tool-data').style.display = 'none';
-    document.getElementById('ig-dl-progress').style.display = 'none';
+    document.getElementById('ig-tool-result').style.display = 'block'; document.getElementById('ig-tool-status').style.display = 'block'; document.getElementById('ig-tool-data').style.display = 'none'; document.getElementById('ig-dl-progress').style.display = 'none';
     document.getElementById('ig-tool-status').innerHTML = '<svg class="spin-anim" viewBox="0 0 24 24" style="width:20px;height:20px;fill:#E1306C;vertical-align:middle;margin-right:5px;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg> Menembak endpoint lokal...';
     
     let formData = new FormData(); formData.append('url', url);
-    fetch('/import_ig', { method: 'POST', body: formData })
-    .then(res => res.json())
-    .then(data => {
+    fetch('/import_ig', { method: 'POST', body: formData }).then(res => res.json()).then(data => {
         if (data && data.status === 'success' && data.media) {
             let mediaList = data.media;
             if (mediaList.length > 0) {
                 window.currentIgData = mediaList; 
-                document.getElementById('ig-tool-status').style.display = 'none';
-                document.getElementById('ig-tool-data').style.display = 'flex';
-                document.getElementById('ig-tool-title').innerText = "Postingan Instagram";
-                document.getElementById('ig-tool-author').innerText = "IG User";
+                document.getElementById('ig-tool-status').style.display = 'none'; document.getElementById('ig-tool-data').style.display = 'flex';
+                document.getElementById('ig-tool-title').innerText = "Postingan Instagram"; document.getElementById('ig-tool-author').innerText = "IG User";
                 
                 let firstUrl = mediaList[0];
                 let isPhoto = firstUrl.includes('.jpg') || firstUrl.includes('.webp') || firstUrl.includes('n.jpg') || firstUrl.includes('stp=dst-jpg');
                 
                 if(mediaList.length > 1 || isPhoto) {
-                    document.getElementById('ig-video-preview').style.display = 'none';
-                    document.getElementById('ig-image-preview').style.display = 'flex';
-                    document.getElementById('ig-slide-indicator').style.display = 'block';
-                    document.getElementById('ig-tool-dl-mp3').style.display = 'none'; 
-                    
+                    document.getElementById('ig-video-preview').style.display = 'none'; document.getElementById('ig-image-preview').style.display = 'flex'; document.getElementById('ig-slide-indicator').style.display = 'block'; document.getElementById('ig-tool-dl-mp3').style.display = 'none'; 
                     let imgContainer = document.getElementById('ig-image-preview'); imgContainer.innerHTML = '';
                     mediaList.forEach((mUrl, idx) => {
                         let isVid = mUrl.includes('.mp4');
@@ -141,30 +108,22 @@ window.processIgAJAX = function() {
                         imgContainer.innerHTML += `<div style="position:relative; min-width:100%; scroll-snap-align: center;">${displayHtml}<button onclick="window.downloadTTApiToDevice('${mUrl}', '${ext}', 'IG_Slide_${idx+1}')" style="position:absolute; bottom:10px; right:10px; background:#E1306C; color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:bold; box-shadow:0 0 10px rgba(0,0,0,0.8); cursor:pointer;">📥 ${btnText} ${idx+1}</button></div>`;
                     });
                     let aud = document.getElementById('ig-audio-preview'); if(aud) aud.style.display = 'none';
-                    document.getElementById('ig-dl-type-txt').innerText = "Unduh Semua Slide";
-                    document.getElementById('ig-tool-dl-main').setAttribute('onclick', "window.downloadIgAll()");
+                    document.getElementById('ig-dl-type-txt').innerText = "Unduh Semua Slide"; document.getElementById('ig-tool-dl-main').setAttribute('onclick', "window.downloadIgAll()");
                 } else {
-                    document.getElementById('ig-video-preview').style.display = 'block';
-                    document.getElementById('ig-image-preview').style.display = 'none';
-                    document.getElementById('ig-slide-indicator').style.display = 'none';
-                    document.getElementById('ig-tool-dl-mp3').style.display = 'none'; 
+                    document.getElementById('ig-video-preview').style.display = 'block'; document.getElementById('ig-image-preview').style.display = 'none'; document.getElementById('ig-slide-indicator').style.display = 'none'; document.getElementById('ig-tool-dl-mp3').style.display = 'none'; 
                     let aud = document.getElementById('ig-audio-preview'); if(aud) aud.style.display = 'none';
                     let vid = document.getElementById('ig-video-preview'); vid.src = firstUrl; vid.load();
-                    document.getElementById('ig-dl-type-txt').innerText = "Unduh MP4";
-                    document.getElementById('ig-tool-dl-main').setAttribute('onclick', `window.downloadTTApiToDevice('${firstUrl}', 'mp4', 'IG_Reels')`);
+                    document.getElementById('ig-dl-type-txt').innerText = "Unduh MP4"; document.getElementById('ig-tool-dl-main').setAttribute('onclick', `window.downloadTTApiToDevice('${firstUrl}', 'mp4', 'IG_Reels')`);
                 }
                 window.showToast("Berhasil mengambil data via Backend Python!", "success");
             } else {
-                document.getElementById('ig-tool-status').innerText = "Gagal memproses post IG. Link tidak valid atau akun diprivat.";
-                window.showToast("Media tidak ditemukan.", "error");
+                document.getElementById('ig-tool-status').innerText = "Gagal memproses post IG. Link tidak valid atau akun diprivat."; window.showToast("Media tidak ditemukan.", "error");
             }
         } else {
-            document.getElementById('ig-tool-status').innerText = "Gagal memproses. " + (data.message || "Server sedang gangguan/sibuk.");
-            window.showToast("Gagal: Respons tidak valid", "error");
+            document.getElementById('ig-tool-status').innerText = "Gagal memproses. " + (data.message || "Server sedang gangguan/sibuk."); window.showToast("Gagal: Respons tidak valid", "error");
         }
     }).catch(err => {
-        document.getElementById('ig-tool-status').innerHTML = "Gagal terhubung ke backend Python lokal Anda.";
-        window.showToast("Error koneksi ke backend", "error");
+        document.getElementById('ig-tool-status').innerHTML = "Gagal terhubung ke backend Python lokal Anda."; window.showToast("Error koneksi ke backend", "error");
     });
 };
 window.downloadIgAll = function() {
@@ -174,16 +133,18 @@ window.downloadIgAll = function() {
 };
 
 // =========================================================================
-// 3. ANIME WATCHER (MENGGUNAKAN IFRAME ANTI-POPUP)
+// 3. ANIME WATCHER (TABS, SEARCH, HISTORY, STREAMING) - MERGED & FIXED
 // =========================================================================
-window.animeHist=JSON.parse(localStorage.getItem('anime_history'))||[];
-window.saveAnimeHist=function(a){window.animeHist=window.animeHist.filter(x=>x.id!==a.id);window.animeHist.unshift(a);if(window.animeHist.length>20)window.animeHist.pop();localStorage.setItem('anime_history',JSON.stringify(window.animeHist));window.renderAnimeHistory();};
-window.renderAnimeHistory=function(){
-    let c=document.getElementById('anime-history-results'); if(!c)return;
-    if(window.animeHist.length===0){c.innerHTML='<p style="text-align:center;color:#666;font-size:12px;">Belum ada riwayat tontonan.</p>';return;}
-    c.innerHTML=window.renderAnimeList(window.animeHist);
+window.openAnimeTool = function() {
+    if(window.isOfflineMode){window.showToast("Matikan Mode Offline!","error");return;}
+    document.getElementById('anime-tool-view').classList.add('active');
+    if(document.getElementById('anime-content-home').innerHTML==="") window.loadAnimeHome();
+    if(typeof window.switchAnimeTab === 'function') window.switchAnimeTab('home'); 
 };
-window.switchAnimeTab=function(t){
+window.closeAnimeTool = function() {
+    document.getElementById('anime-tool-view').classList.remove('active');
+};
+window.switchAnimeTab = function(t) {
     ['home','search','history'].forEach(x=>{ 
         let tab = document.getElementById('anime-tab-'+x); if(tab) tab.style.display='none'; 
         let btn = document.getElementById('tab-btn-anime-'+x);
@@ -192,8 +153,57 @@ window.switchAnimeTab=function(t){
     let activeTab = document.getElementById('anime-tab-'+t); if(activeTab) activeTab.style.display='block';
     let activeNav = document.getElementById('tab-btn-anime-'+t); 
     if(activeNav) { activeNav.classList.add('active'); activeNav.style.color='#ff9900'; }
-    if(t==='history' && typeof window.renderAnimeHistory === 'function') window.renderAnimeHistory();
+    if(t==='history') window.renderAnimeHistory();
 };
+
+window.saveAnimeHist = function(aId, title, poster) {
+    let history = JSON.parse(localStorage.getItem('ytpro_anime_history')) || [];
+    history = history.filter(h => h.id !== aId);
+    history.unshift({id: aId, title: title, img: poster});
+    if(history.length > 20) history.pop();
+    localStorage.setItem('ytpro_anime_history', JSON.stringify(history));
+};
+
+window.renderAnimeHistory = function() {
+    let histDiv = document.getElementById('anime-history-results');
+    let history = JSON.parse(localStorage.getItem('ytpro_anime_history')) || [];
+    if(history.length === 0) {
+        histDiv.innerHTML = '<p style="color:#666;text-align:center;font-size:12px;margin-top:20px;">Belum ada riwayat tontonan Anime.</p>';
+        return;
+    }
+    let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+    history.forEach((anime, idx) => {
+        let titleStr = anime.title.replace(/'/g, "\\'");
+        html += `
+        <div class="card slide-up delay-${idx%3+1}" onclick="window.openAnimeDetail('${anime.id}', '${titleStr}', '${anime.img}')" style="border-color:#ff9900; background:#000a14;">
+            <img src="${anime.img}" class="card-img" style="border:1px solid #ff9900;">
+            <div class="card-info">
+                <h3 style="color:#fff;">${anime.title}</h3>
+                <p style="color:#aaa;">Terakhir dilihat</p>
+            </div>
+            <button class="remove-btn" onclick="event.stopPropagation(); window.removeAnimeHistory('${anime.id}')" style="color:var(--primary); padding:10px; font-size:16px;">✕</button>
+        </div>`;
+    });
+    html += '</div>';
+    html += '<button class="btn-no" style="width:100%; border-color:var(--primary); color:var(--primary); padding:12px; margin-top:20px; border-radius:12px; font-size:13px; font-weight:bold;" onclick="window.clearAnimeHistory()">HAPUS SEMUA RIWAYAT</button>';
+    histDiv.innerHTML = html;
+};
+window.removeAnimeHistory = function(id) {
+    let history = JSON.parse(localStorage.getItem('ytpro_anime_history')) || [];
+    history = history.filter(h => h.id !== id);
+    localStorage.setItem('ytpro_anime_history', JSON.stringify(history));
+    window.renderAnimeHistory();
+};
+window.clearAnimeHistory = function() {
+    if(typeof window.showConfirm === 'function') {
+        window.showConfirm("Hapus semua riwayat anime?", function(){
+            localStorage.removeItem('ytpro_anime_history'); window.renderAnimeHistory(); window.showToast("Riwayat Anime dibersihkan", "success");
+        });
+    } else {
+        localStorage.removeItem('ytpro_anime_history'); window.renderAnimeHistory();
+    }
+};
+
 window.renderAnimeList=function(arr){
     let h=`<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;">`;
     let svgFire=`<svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:#ff9900;vertical-align:middle;margin-right:2px;"><path d="M11.71 1.05c-.34-.34-.95-.08-.95.4 0 2.21-1.39 4.23-3.32 5.56-1.5 1.03-2.44 2.76-2.44 4.62 0 3.31 2.69 6 6 6s6-2.69 6-6c0-1.86-.94-3.59-2.44-4.62-1.93-1.33-3.32-3.35-3.32-5.56 0-.48-.61-.74-.95-.4l1.42 1.4z"/></svg>`;
@@ -204,12 +214,7 @@ window.renderAnimeList=function(arr){
     });
     h+=`</div>`; return h;
 };
-window.openAnimeTool=function(){
-    if(window.isOfflineMode){window.showToast("Matikan Mode Offline!","error");return;}
-    document.getElementById('anime-tool-view').classList.add('active');
-    if(document.getElementById('anime-content-home').innerHTML==="") window.loadAnimeHome();
-};
-window.closeAnimeTool=function(){ document.getElementById('anime-tool-view').classList.remove('active'); };
+
 window.loadAnimeHome=function(){
     let c=document.getElementById('anime-content-home'); let l=document.getElementById('anime-loading-home');
     let svgFire=`<svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#ff9900;vertical-align:middle;margin-right:5px;"><path d="M11.71 1.05c-.34-.34-.95-.08-.95.4 0 2.21-1.39 4.23-3.32 5.56-1.5 1.03-2.44 2.76-2.44 4.62 0 3.31 2.69 6 6 6s6-2.69 6-6c0-1.86-.94-3.59-2.44-4.62-1.93-1.33-3.32-3.35-3.32-5.56 0-.48-.61-.74-.95-.4l1.42 1.4z"/></svg>`;
@@ -223,16 +228,19 @@ window.loadAnimeHome=function(){
         c.innerHTML=fh; l.style.display='none'; c.style.display='block';
     }).catch(e=>{ l.innerHTML=`<p style="color:var(--primary);">Gagal memuat API Sanka Vollerei.</p>`; });
 };
+
 window.searchAnimeApi=function(){
     let q=document.getElementById('anime-search-input').value.trim(); if(!q)return;
     let rDiv=document.getElementById('anime-search-results');
-    rDiv.innerHTML=`<div style="text-align:center;padding:30px 0;"><p style="color:#888;font-size:12px;">Mencari "${q}"...</p></div>`;
+    rDiv.innerHTML=`<div style="text-align:center;padding:30px 0;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#ff9900;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#888;font-size:12px;">Mencari anime...</p></div>`;
     fetch(`https://www.sankavollerei.web.id/anime/search?query=${encodeURIComponent(q)}`).then(r=>r.json()).then(d=>{
-        if(d&&d.data&&d.data.animeList&&d.data.animeList.length>0){ rDiv.innerHTML=window.renderAnimeList(d.data.animeList); }else{ rDiv.innerHTML=`<p style="color:#888;text-align:center;">Tidak ditemukan.</p>`; }
+        if(d&&d.data&&d.data.animeList&&d.data.animeList.length>0){ rDiv.innerHTML=window.renderAnimeList(d.data.animeList); }
+        else{ rDiv.innerHTML=`<p style="color:#888;text-align:center;">Tidak ditemukan.</p>`; }
     }).catch(e=>{ rDiv.innerHTML=`<p style="color:var(--primary);text-align:center;">Pencarian error/API tidak merespons.</p>`; });
 };
+
 window.openAnimeDetail=function(aId,title,poster){
-    window.saveAnimeHist({id:aId,title:title,poster:poster,episodes:'-',score:'-'});
+    window.saveAnimeHist(aId, title, poster);
     document.getElementById('anime-detail-view').classList.add('active');
     document.getElementById('detail-anime-header-title').innerText=title;
     document.getElementById('anime-detail-loading').style.display='block';
@@ -266,6 +274,7 @@ window.openAnimeDetail=function(aId,title,poster){
     }).catch(e=>{ document.getElementById('anime-detail-loading').innerHTML=`<p style="color:var(--primary);">Error koneksi ke API Sanka.</p>`; });
 };
 window.closeAnimeDetail=function(){ document.getElementById('anime-detail-view').classList.remove('active'); };
+
 window.loadAnimeStream=function(url){
     let i=document.getElementById('anime-iframe'); let bBtn=document.getElementById('anime-browser-btn'); let loadTxt=document.getElementById('anime-video-loading-text');
     loadTxt.innerText="Membongkar link server..."; loadTxt.style.display='block';
@@ -276,6 +285,7 @@ window.loadAnimeStream=function(url){
         loadTxt.style.display='none';
     }).catch(e=>{ if(url.startsWith('//')) url='https:'+url; i.src=url; bBtn.onclick=function(){window.open(url,'_blank');}; loadTxt.style.display='none'; });
 };
+
 window.playAnimeEpisode=function(epsId,epsTitle){
     let m=document.getElementById('anime-player-modal'); let i=document.getElementById('anime-iframe'); let tEl=document.getElementById('anime-player-title'); let eEl=document.getElementById('anime-player-eps-title'); let sList=document.getElementById('anime-server-list');
     tEl.innerText="Memuat Server..."; eEl.innerText=epsTitle; i.src=""; sList.innerHTML=`<p style="color:#888; font-size:11px;">Mencari server streaming...</p>`;
@@ -305,6 +315,21 @@ window.playAnimeEpisode=function(epsId,epsTitle){
     }).catch(e=>{window.showToast("Error jaringan/API saat memuat server.","error");});
 };
 window.closeAnimePlayer=function(){ document.getElementById('anime-player-modal').classList.remove('show'); document.getElementById('anime-iframe').src=""; };
+
+if (typeof window.oldHandleBackAnime === 'undefined') {
+    window.oldHandleBackAnime = window.handleBackButton;
+    window.handleBackButton = function() {
+        let animePanel = document.getElementById('anime-tool-view');
+        if(animePanel && animePanel.classList.contains('active')) {
+            window.closeAnimeTool();
+            return "handled";
+        }
+        if(typeof window.oldHandleBackAnime === 'function') {
+            return window.oldHandleBackAnime();
+        }
+        return "exit";
+    };
+}
 
 // =========================================================================
 // 4. SISTEM NATIVE DOWNLOADER (UNTUK TIKTOK & IG)
@@ -385,8 +410,8 @@ window.downloadTTApiToDevice = function(targetUrl, ext, titlePrefix) {
     }
 };
 
-// // // // // =========================================================================
-// 5. INTERNET UPPING (SPEED TEST UPLOAD) - VIA PYTHON BACKEND (NATIVE SPEED)
+// =========================================================================
+// 5. INTERNET UPPING (SPEED TEST UPLOAD)
 // =========================================================================
 window.isNetTesting = false;
 window.netTestTimeout = null;
@@ -399,7 +424,6 @@ window.openNetworkTool = function() {
     document.getElementById('net-isp').innerText = "Memuat...";
     document.getElementById('net-speed-val').innerText = "0.00";
     
-    // API IP & ISP (Menggunakan GeoJS yang 100% bebas blokir CORS)
     fetch('https://get.geojs.io/v1/ip/geo.json')
         .then(res => res.json())
         .then(data => {
@@ -412,149 +436,84 @@ window.openNetworkTool = function() {
 };
 
 window.closeNetworkTool = function() {
-    if(window.isNetTesting) window.startUploadTest(); // Matikan otomatis jika keluar panel
+    if(window.isNetTesting) window.startUploadTest(); 
     document.getElementById('network-tool-view').classList.remove('active');
 };
 
-// Fungsi Menggambar Grafik Real-time
 window.drawGraph = function() {
     let canvas = document.getElementById('speedGraph');
     if(!canvas) return;
     let ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
     if(window.graphData.length === 0) return;
     
     let maxVal = Math.max(...window.graphData, 1);
     let stepX = canvas.width / 19;
-    
-    ctx.beginPath();
-    ctx.strokeStyle = '#00ff00';
-    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.strokeStyle = '#00ff00'; ctx.lineWidth = 2;
     
     for(let i = 0; i < window.graphData.length; i++) {
-        let x = i * stepX;
-        let y = canvas.height - ((window.graphData[i] / maxVal) * canvas.height);
+        let x = i * stepX; let y = canvas.height - ((window.graphData[i] / maxVal) * canvas.height);
         y = Math.max(5, Math.min(canvas.height - 2, y));
-        if(i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+        if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
-    ctx.stroke();
-    
-    ctx.lineTo(canvas.width, canvas.height);
-    ctx.lineTo(0, canvas.height);
-    ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
-    ctx.fill();
+    ctx.stroke(); ctx.lineTo(canvas.width, canvas.height); ctx.lineTo(0, canvas.height); ctx.fillStyle = 'rgba(0, 255, 0, 0.2)'; ctx.fill();
 };
 
 window.startUploadTest = async function() {
-    let btn = document.getElementById('btn-start-net');
-    let speedVal = document.getElementById('net-speed-val');
-    let circle = document.getElementById('net-speed-circle');
-    let canvas = document.getElementById('speedGraph');
-    
-    // --- LOGIKA UNTUK STOP ---
+    let btn = document.getElementById('btn-start-net'); let speedVal = document.getElementById('net-speed-val'); let circle = document.getElementById('net-speed-circle'); let canvas = document.getElementById('speedGraph');
     if (window.isNetTesting) {
-        window.isNetTesting = false;
-        clearTimeout(window.netTestTimeout);
-        btn.innerText = 'MULAI TEST UPLOAD';
-        btn.style.background = '#00ff00';
-        btn.style.color = '#000';
-        btn.style.boxShadow = '0 0 15px rgba(0,255,0,0.4)';
-        circle.style.display = 'none';
-        
-        // Perintahkan Python untuk STOP
+        window.isNetTesting = false; clearTimeout(window.netTestTimeout);
+        btn.innerText = 'MULAI TEST UPLOAD'; btn.style.background = '#00ff00'; btn.style.color = '#000'; btn.style.boxShadow = '0 0 15px rgba(0,255,0,0.4)'; circle.style.display = 'none';
         fetch('/stop_upping', { method: 'POST' }).catch(e=>console.log(e));
-        
-        window.showToast("Proses dihentikan.", "info");
-        return;
+        window.showToast("Proses dihentikan.", "info"); return;
     }
-    
     if(window.isOfflineMode) { window.showToast("Matikan Mode Offline!", "error"); return; }
     
-    // --- LOGIKA UNTUK START ---
     window.isNetTesting = true;
-    btn.innerText = 'STOP PROSES UPLOAD';
-    btn.style.background = '#ff003c';
-    btn.style.color = '#fff';
-    btn.style.boxShadow = '0 0 15px rgba(255,0,60,0.4)';
-    circle.style.display = 'block';
-    canvas.style.display = 'block';
-    window.graphData = [];
-    window.drawGraph();
+    btn.innerText = 'STOP PROSES UPLOAD'; btn.style.background = '#ff003c'; btn.style.color = '#fff'; btn.style.boxShadow = '0 0 15px rgba(255,0,60,0.4)';
+    circle.style.display = 'block'; canvas.style.display = 'block';
+    window.graphData = []; window.drawGraph();
     
-    // Auto Stop 2 Menit
-    window.netTestTimeout = setTimeout(() => {
-        if(window.isNetTesting) {
-            window.startUploadTest();
-            window.showToast("Batas waktu uji (2 Menit) selesai.", "success");
-        }
-    }, 120000);
-    
+    window.netTestTimeout = setTimeout(() => { if(window.isNetTesting) { window.startUploadTest(); window.showToast("Batas waktu uji (2 Menit) selesai.", "success"); } }, 120000);
     window.showToast("Menjalankan mesin native Python (UDP)...", "info");
     
-    // Perintahkan Python untuk START
-    fetch('/start_upping', { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-            if(data.status !== 'success') {
-                window.showToast("Gagal memulai mesin Python.", "error");
-                window.startUploadTest(); 
-            }
-        }).catch(e => {
-            window.showToast("Gagal koneksi ke app.py", "error");
-            window.startUploadTest(); 
-        });
+    fetch('/start_upping', { method: 'POST' }).then(res => res.json()).then(data => { if(data.status !== 'success') { window.showToast("Gagal memulai mesin Python.", "error"); window.startUploadTest(); } }).catch(e => { window.showToast("Gagal koneksi ke app.py", "error"); window.startUploadTest(); });
 
-    // Loop bertanya ke Python: "Kecepatan sekarang berapa?" setiap 1 detik
     const monitorSpeed = async () => {
         while(window.isNetTesting) {
             await new Promise(r => setTimeout(r, 1000));
             if(!window.isNetTesting) break;
-            
             try {
-                let res = await fetch('/status_upping');
-                let data = await res.json();
-                
-                let speedMBps = data.speed_mbps || 0;
-                speedVal.innerText = speedMBps.toFixed(2);
-                
-                window.graphData.push(speedMBps);
-                if(window.graphData.length > 20) window.graphData.shift(); // Max 20 history
+                let res = await fetch('/status_upping'); let data = await res.json();
+                let speedMBps = data.speed_mbps || 0; speedVal.innerText = speedMBps.toFixed(2);
+                window.graphData.push(speedMBps); if(window.graphData.length > 20) window.graphData.shift(); 
                 window.drawGraph();
-            } catch(e) {
-                // Abaikan jika lag
-            }
+            } catch(e) {}
         }
     };
-    
     monitorSpeed();
 };
-// ==========================================
-// MESIN IMAGE UPSCALER (WEB API SERVER) + BEFORE/AFTER
-// ==========================================
+
+// =========================================================================
+// 6. MESIN IMAGE UPSCALER (WEB API SERVER) + BEFORE/AFTER
+// =========================================================================
 window.openUpscaleTool = function() {
     document.getElementById('upscale-tool-view').classList.add('active');
-    window.setupSlider(); // Inisiasi interaksi slider panah
+    window.setupSlider(); 
 };
 
-window.closeUpscaleTool = function() {
-    document.getElementById('upscale-tool-view').classList.remove('active');
-};
+window.closeUpscaleTool = function() { document.getElementById('upscale-tool-view').classList.remove('active'); };
 
 window.resetUpscale = function() {
-    document.getElementById('upscale-raw-preview').style.display = 'none';
-    document.getElementById('upscale-result-container').style.display = 'none';
-    document.getElementById('upscale-setup-container').style.display = 'block';
-    document.getElementById('upscale-file-input').value = '';
+    document.getElementById('upscale-raw-preview').style.display = 'none'; document.getElementById('upscale-result-container').style.display = 'none';
+    document.getElementById('upscale-setup-container').style.display = 'block'; document.getElementById('upscale-file-input').value = '';
 };
 
 window.previewUpscaleFile = function(event) {
     let file = event.target.files[0];
     if(file) {
         let imgPreview = document.getElementById('upscale-raw-preview');
-        imgPreview.src = URL.createObjectURL(file);
-        imgPreview.style.display = 'block';
+        imgPreview.src = URL.createObjectURL(file); imgPreview.style.display = 'block';
         document.getElementById('upscale-result-container').style.display = 'none';
         window.showToast("Gambar dipilih. Siap di-upscale!", "info");
     }
@@ -562,267 +521,58 @@ window.previewUpscaleFile = function(event) {
 
 window.processUpscale = async function() {
     let fileInput = document.getElementById('upscale-file-input');
-    if(!fileInput.files || !fileInput.files[0]) {
-        window.showToast("Pilih gambar/foto terlebih dahulu!", "error");
-        return;
-    }
+    if(!fileInput.files || !fileInput.files[0]) { window.showToast("Pilih gambar/foto terlebih dahulu!", "error"); return; }
     
     let btnStart = document.getElementById('btn-start-upscale');
-    btnStart.innerText = "MENGUPLOAD KE SERVER WEB...";
-    btnStart.disabled = true;
-    
+    btnStart.innerText = "MENGUPLOAD KE SERVER WEB..."; btnStart.disabled = true;
     let file = fileInput.files[0];
-    
-    // Tampilkan foto asli yang belum diproses di sisi KIRI (Before)
     document.getElementById('img-before').src = URL.createObjectURL(file);
     
     try {
         window.showToast("Memproses di Server Web... HP Anda tetap dingin!", "info");
-        
-        // ---------------------------------------------------------
-        // MESIN FETCH API (PENGIRIMAN DATA KE WEB SERVER)
-        // ---------------------------------------------------------
-        let formData = new FormData();
-        formData.append('image', file); // Mengemas file foto untuk diunggah
-        // formData.append('scale', document.getElementById('upscale-factor').value); 
-        
-        /* 
-           KODE HTTP REQUEST KE API WEB PIHAK KETIGA
-           (Ganti URL di bawah dengan alamat API Web/Server Anda)
-           Saat ini saya jadikan komentar agar APK tidak error menolak koneksi.
-        */
-        // let response = await fetch('https://api.web-upscaler-anda.com/v1/process', {
-        //     method: 'POST',
-        //     body: formData,
-        //     headers: { 'Authorization': 'Bearer API_KEY_ANDA' }
-        // });
-        // let data = await response.json();
-        // let imageUrlDariWeb = data.output_image_url; 
-
-        // --- SIMULASI PENERIMAAN HASIL (Hapus baris ini jika Web API asli sudah dipasang) ---
+        let formData = new FormData(); formData.append('image', file); 
         let imageUrlDariWeb = URL.createObjectURL(file); 
-        // ----------------------------------------------------------------------------------
-        
-        // TAMPILKAN HASIL DARI WEB KE DALAM APK (Slider)
         let resultImg = document.getElementById('img-after');
         resultImg.onload = function() {
-            document.getElementById('upscale-setup-container').style.display = 'none';
-            document.getElementById('upscale-result-container').style.display = 'block';
-            
-            // Kembalikan posisi slider pembatas ke tengah persis
-            document.getElementById('img-before').style.clipPath = `polygon(0 0, 50% 0, 50% 100%, 0 100%)`;
-            document.getElementById('slider-handle').style.left = `50%`;
-            
-            // Logika Tombol Download (Mendownload gambar dari URL hasil Web)
+            document.getElementById('upscale-setup-container').style.display = 'none'; document.getElementById('upscale-result-container').style.display = 'block';
+            document.getElementById('img-before').style.clipPath = `polygon(0 0, 50% 0, 50% 100%, 0 100%)`; document.getElementById('slider-handle').style.left = `50%`;
             document.getElementById('btn-dl-upscale').onclick = async function() {
                 window.showToast("Mendownload hasil dari Web...", "info");
                 try {
-                    let res = await fetch(imageUrlDariWeb);
-                    let blob = await res.blob();
-                    let a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
+                    let res = await fetch(imageUrlDariWeb); let blob = await res.blob(); let a = document.createElement('a'); a.href = URL.createObjectURL(blob);
                     a.download = "Nexus_Web_Upscaled_" + fileInput.files[0].name.replace(/\.[^/.]+$/, "") + ".jpg";
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.showToast("Berhasil disimpan ke Galeri HP!", "success");
-                } catch(e) {
-                    window.showToast("Gagal mengunduh gambar dari Web", "error");
-                }
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a); window.showToast("Berhasil disimpan ke Galeri HP!", "success");
+                } catch(e) { window.showToast("Gagal mengunduh gambar dari Web", "error"); }
             };
-            
-            btnStart.innerText = "PROSES GAMBAR SEKARANG";
-            btnStart.disabled = false;
-            window.showToast("Upscale via Web Selesai!", "success");
+            btnStart.innerText = "PROSES GAMBAR SEKARANG"; btnStart.disabled = false; window.showToast("Upscale via Web Selesai!", "success");
         };
-        
-        // Pasang link gambar hasil kiriman Web ke kotak KANAN (After)
         resultImg.src = imageUrlDariWeb;
-
     } catch (err) {
-        window.showToast("Koneksi ke Server Web terputus!", "error");
-        btnStart.innerText = "PROSES GAMBAR SEKARANG";
-        btnStart.disabled = false;
+        window.showToast("Koneksi ke Server Web terputus!", "error"); btnStart.innerText = "PROSES GAMBAR SEKARANG"; btnStart.disabled = false;
     }
 };
 
 window.setupSlider = function() {
-    let container = document.getElementById('compare-container');
-    if(!container) return;
-    if(container.dataset.sliderInit) return; // Mencegah event sentuhan bertumpuk/dobel
+    let container = document.getElementById('compare-container'); if(!container || container.dataset.sliderInit) return;
     container.dataset.sliderInit = "true";
-    
-    let beforeImg = document.getElementById('img-before');
-    let handle = document.getElementById('slider-handle');
-    let isSliding = false;
-    
+    let beforeImg = document.getElementById('img-before'); let handle = document.getElementById('slider-handle'); let isSliding = false;
     let slide = function(e) {
         if(!isSliding) return;
-        let rect = container.getBoundingClientRect();
-        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        let x = clientX - rect.left;
-        let pct = Math.max(0, Math.min(100, (x / rect.width) * 100)); // Batasi 0% - 100%
-        
-        beforeImg.style.clipPath = `polygon(0 0, ${pct}% 0, ${pct}% 100%, 0 100%)`;
-        handle.style.left = `${pct}%`;
+        let rect = container.getBoundingClientRect(); let clientX = e.touches ? e.touches[0].clientX : e.clientX; let x = clientX - rect.left;
+        let pct = Math.max(0, Math.min(100, (x / rect.width) * 100)); 
+        beforeImg.style.clipPath = `polygon(0 0, ${pct}% 0, ${pct}% 100%, 0 100%)`; handle.style.left = `${pct}%`;
     };
-
-    container.addEventListener('mousedown', () => isSliding = true);
-    container.addEventListener('touchstart', () => isSliding = true, {passive: true});
-    document.addEventListener('mouseup', () => isSliding = false);
-    document.addEventListener('touchend', () => isSliding = false);
-    document.addEventListener('mousemove', slide);
-    document.addEventListener('touchmove', slide, {passive: true});
+    container.addEventListener('mousedown', () => isSliding = true); container.addEventListener('touchstart', () => isSliding = true, {passive: true});
+    document.addEventListener('mouseup', () => isSliding = false); document.addEventListener('touchend', () => isSliding = false);
+    document.addEventListener('mousemove', slide); document.addEventListener('touchmove', slide, {passive: true});
 };
 
-// Override Back button khusus untuk menutup panel Upscaler
 if (typeof window.oldHandleBackUpscale === 'undefined') {
     window.oldHandleBackUpscale = window.handleBackButton;
     window.handleBackButton = function() {
         let upPanel = document.getElementById('upscale-tool-view');
-        if(upPanel && upPanel.classList.contains('active')) {
-            window.closeUpscaleTool();
-            return "handled";
-        }
-        if(typeof window.oldHandleBackUpscale === 'function') {
-            return window.oldHandleBackUpscale();
-        }
-        return "exit";
-    };
-}
-// ==========================================
-// MESIN ANIME WATCHER (TABS, SEARCH, HISTORY)
-// ==========================================
-window.openAnimeTool = function() {
-    document.getElementById('anime-tool-view').classList.add('active');
-    // Buka tab beranda secara default saat diklik
-    if(typeof window.switchAnimeTab === 'function') {
-        window.switchAnimeTab('home'); 
-    }
-};
-
-window.closeAnimeTool = function() {
-    document.getElementById('anime-tool-view').classList.remove('active');
-};
-
-window.switchAnimeTab = function(tabName) {
-    // Sembunyikan semua konten tab
-    document.getElementById('anime-tab-home').style.display = 'none';
-    document.getElementById('anime-tab-search').style.display = 'none';
-    document.getElementById('anime-tab-history').style.display = 'none';
-    
-    // Matikan warna aktif tombol tab bawah
-    document.getElementById('tab-btn-anime-home').style.color = '#888';
-    document.getElementById('tab-btn-anime-search').style.color = '#888';
-    document.getElementById('tab-btn-anime-history').style.color = '#888';
-    
-    // Nyalakan tab yang dipilih
-    document.getElementById('anime-tab-' + tabName).style.display = 'block';
-    document.getElementById('tab-btn-anime-' + tabName).style.color = '#ff9900';
-
-    if(tabName === 'history') {
-        window.renderAnimeHistory();
-    }
-};
-
-window.searchAnimeApi = function() {
-    let query = document.getElementById('anime-search-input').value.trim();
-    let resDiv = document.getElementById('anime-search-results');
-    if(!query) return;
-    
-    resDiv.innerHTML = '<div style="text-align:center;padding:20px;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#ff9900;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#888;font-size:12px;">Mencari anime...</p></div>';
-    
-    fetch('https://api.jikan.moe/v4/anime?q=' + encodeURIComponent(query) + '&sfw=true')
-    .then(res => res.json())
-    .then(data => {
-        resDiv.innerHTML = '';
-        if(data.data && data.data.length > 0) {
-            let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
-            data.data.forEach(anime => {
-                let title = anime.title.replace(/'/g, "\\'");
-                let img = anime.images.jpg.image_url;
-                let id = anime.mal_id;
-                let type = anime.type || 'TV';
-                let score = anime.score || 'N/A';
-                html += `
-                <div class="card slide-up" onclick="if(typeof window.fetchAnimeDetail === 'function') { window.fetchAnimeDetail('${id}', '${title}'); } else { window.showToast('Sedang memuat sistem player...', 'info'); }" style="border-color:#ff9900; background:#000a14;">
-                    <img src="${img}" class="card-img" style="border:1px solid #ff9900;">
-                    <div class="card-info">
-                        <h3 style="color:#fff;">${anime.title}</h3>
-                        <p style="color:#ff9900;">${type} • Score: ${score}</p>
-                    </div>
-                    <div style="color:#ff9900; font-size:18px;">❯</div>
-                </div>`;
-            });
-            html += '</div>';
-            resDiv.innerHTML = html;
-        } else {
-            resDiv.innerHTML = '<p style="color:#666;text-align:center;font-size:12px;">Anime tidak ditemukan.</p>';
-        }
-    }).catch(err => {
-        resDiv.innerHTML = '<p style="color:var(--primary);text-align:center;font-size:12px;">Gagal memuat pencarian. Coba lagi.</p>';
-    });
-};
-
-window.renderAnimeHistory = function() {
-    let histDiv = document.getElementById('anime-history-results');
-    let history = JSON.parse(localStorage.getItem('ytpro_anime_history')) || [];
-    
-    if(history.length === 0) {
-        histDiv.innerHTML = '<p style="color:#666;text-align:center;font-size:12px;margin-top:20px;">Belum ada riwayat tontonan Anime.</p>';
-        return;
-    }
-    
-    let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
-    history.reverse().forEach((anime, idx) => {
-        let titleStr = anime.title.replace(/'/g, "\\'");
-        html += `
-        <div class="card slide-up delay-${idx%3+1}" onclick="if(typeof window.fetchAnimeDetail === 'function') { window.fetchAnimeDetail('${anime.id}', '${titleStr}'); }" style="border-color:#ff9900; background:#000a14;">
-            <img src="${anime.img}" class="card-img" style="border:1px solid #ff9900;">
-            <div class="card-info">
-                <h3 style="color:#fff;">${anime.title}</h3>
-                <p style="color:#aaa;">Terakhir dilihat</p>
-            </div>
-            <button class="remove-btn" onclick="event.stopPropagation(); window.removeAnimeHistory('${anime.id}')" style="color:var(--primary); padding:10px; font-size:16px;">✕</button>
-        </div>`;
-    });
-    html += '</div>';
-    html += '<button class="btn-no" style="width:100%; border-color:var(--primary); color:var(--primary); padding:12px; margin-top:20px; border-radius:12px; font-size:13px; font-weight:bold;" onclick="window.clearAnimeHistory()">HAPUS SEMUA RIWAYAT</button>';
-    histDiv.innerHTML = html;
-};
-
-window.removeAnimeHistory = function(id) {
-    let history = JSON.parse(localStorage.getItem('ytpro_anime_history')) || [];
-    history = history.filter(h => h.id !== id);
-    localStorage.setItem('ytpro_anime_history', JSON.stringify(history));
-    window.renderAnimeHistory();
-};
-
-window.clearAnimeHistory = function() {
-    if(typeof window.showConfirm === 'function') {
-        window.showConfirm("Hapus semua riwayat anime?", function(){
-            localStorage.removeItem('ytpro_anime_history');
-            window.renderAnimeHistory();
-            window.showToast("Riwayat Anime dibersihkan", "success");
-        });
-    } else {
-        localStorage.removeItem('ytpro_anime_history');
-        window.renderAnimeHistory();
-    }
-};
-
-// Pencegat tombol back HP untuk panel Anime
-if (typeof window.oldHandleBackAnime === 'undefined') {
-    window.oldHandleBackAnime = window.handleBackButton;
-    window.handleBackButton = function() {
-        let animePanel = document.getElementById('anime-tool-view');
-        if(animePanel && animePanel.classList.contains('active')) {
-            window.closeAnimeTool();
-            return "handled";
-        }
-        if(typeof window.oldHandleBackAnime === 'function') {
-            return window.oldHandleBackAnime();
-        }
+        if(upPanel && upPanel.classList.contains('active')) { window.closeUpscaleTool(); return "handled"; }
+        if(typeof window.oldHandleBackUpscale === 'function') { return window.oldHandleBackUpscale(); }
         return "exit";
     };
 }
