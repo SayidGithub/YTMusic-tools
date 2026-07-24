@@ -878,25 +878,33 @@ setInterval(function() {
 }, 1000);
 
 // =========================================================================
-// 12. MESIN UPDATE PROFILE & UPLOAD AVATAR (SMART DETECTOR)
+// 12. MESIN UPDATE PROFILE & UPLOAD AVATAR (SUPER SMART DETECTOR)
 // =========================================================================
 window.selectedAvatarBase64 = null;
 
-// Fungsi pintar mencari username asli dari memori
+// Fungsi pintar mencari username asli (Tahan banting terhadap CSS dan elemen tersembunyi)
 function getRealUsername() {
     let uname = "Guest";
-    // 1. Coba cari dari text Sidebar yang sudah dirender sistem utama
     let sidebarName = document.getElementById('sidebar-username-txt');
-    if(sidebarName && sidebarName.innerText.trim().toUpperCase() !== "GUEST") {
-        uname = sidebarName.innerText.trim();
+    
+    // PENGGUNAAN textContent SANGAT PENTING: Mengambil teks asli tanpa terpengaruh efek CSS huruf besar atau panel tersembunyi
+    if (sidebarName && sidebarName.textContent) {
+        let rawText = sidebarName.textContent.trim();
+        if (rawText && rawText.toUpperCase() !== "GUEST") {
+            uname = rawText; // Akan tetap "test", bukan "TEST"
+        }
     }
-    // 2. Coba cari dari semua kemungkinan kunci memori HP (localStorage)
-    if(uname.toUpperCase() === "GUEST") {
-        uname = localStorage.getItem('ytpro_username') || 
-                localStorage.getItem('username') || 
-                localStorage.getItem('user') || 
-                localStorage.getItem('yt_uname') || 
-                "Guest";
+    
+    // Jika di HTML masih Guest/kosong, gali langsung ke akar memori (Local Storage) HP
+    if (uname.toUpperCase() === "GUEST" || !uname) {
+        let keys = ['ytpro_username', 'username', 'user', 'uname', 'akun'];
+        for (let i = 0; i < keys.length; i++) {
+            let val = localStorage.getItem(keys[i]);
+            if (val && val.toUpperCase() !== "GUEST") {
+                uname = val;
+                break;
+            }
+        }
     }
     return uname;
 }
@@ -916,7 +924,6 @@ setTimeout(() => {
 window.openProfileView = function() {
     let uname = getRealUsername();
 
-    // JIKA MASIH GUEST, BERARTI SESI MEMORI KOSONG. WAJIB LOGIN DULU!
     if(uname.toUpperCase() === "GUEST" || !uname) {
         window.showToast("Sesi habis! Silakan Login ke akun kamu dulu ya sayang.", "error");
         let authModal = document.getElementById('auth-modal');
