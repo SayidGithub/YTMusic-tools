@@ -685,3 +685,139 @@ if (typeof window.oldHandleBackUpscale === 'undefined') {
         return "exit";
     };
 }
+// ==========================================
+// MESIN ANIME WATCHER (TABS, SEARCH, HISTORY)
+// ==========================================
+window.openAnimeTool = function() {
+    document.getElementById('anime-tool-view').classList.add('active');
+    // Buka tab beranda secara default saat diklik
+    if(typeof window.switchAnimeTab === 'function') {
+        window.switchAnimeTab('home'); 
+    }
+};
+
+window.closeAnimeTool = function() {
+    document.getElementById('anime-tool-view').classList.remove('active');
+};
+
+window.switchAnimeTab = function(tabName) {
+    // Sembunyikan semua konten tab
+    document.getElementById('anime-tab-home').style.display = 'none';
+    document.getElementById('anime-tab-search').style.display = 'none';
+    document.getElementById('anime-tab-history').style.display = 'none';
+    
+    // Matikan warna aktif tombol tab bawah
+    document.getElementById('tab-btn-anime-home').style.color = '#888';
+    document.getElementById('tab-btn-anime-search').style.color = '#888';
+    document.getElementById('tab-btn-anime-history').style.color = '#888';
+    
+    // Nyalakan tab yang dipilih
+    document.getElementById('anime-tab-' + tabName).style.display = 'block';
+    document.getElementById('tab-btn-anime-' + tabName).style.color = '#ff9900';
+
+    if(tabName === 'history') {
+        window.renderAnimeHistory();
+    }
+};
+
+window.searchAnimeApi = function() {
+    let query = document.getElementById('anime-search-input').value.trim();
+    let resDiv = document.getElementById('anime-search-results');
+    if(!query) return;
+    
+    resDiv.innerHTML = '<div style="text-align:center;padding:20px;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#ff9900;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#888;font-size:12px;">Mencari anime...</p></div>';
+    
+    fetch('https://api.jikan.moe/v4/anime?q=' + encodeURIComponent(query) + '&sfw=true')
+    .then(res => res.json())
+    .then(data => {
+        resDiv.innerHTML = '';
+        if(data.data && data.data.length > 0) {
+            let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+            data.data.forEach(anime => {
+                let title = anime.title.replace(/'/g, "\\'");
+                let img = anime.images.jpg.image_url;
+                let id = anime.mal_id;
+                let type = anime.type || 'TV';
+                let score = anime.score || 'N/A';
+                html += `
+                <div class="card slide-up" onclick="if(typeof window.fetchAnimeDetail === 'function') { window.fetchAnimeDetail('${id}', '${title}'); } else { window.showToast('Sedang memuat sistem player...', 'info'); }" style="border-color:#ff9900; background:#000a14;">
+                    <img src="${img}" class="card-img" style="border:1px solid #ff9900;">
+                    <div class="card-info">
+                        <h3 style="color:#fff;">${anime.title}</h3>
+                        <p style="color:#ff9900;">${type} • Score: ${score}</p>
+                    </div>
+                    <div style="color:#ff9900; font-size:18px;">❯</div>
+                </div>`;
+            });
+            html += '</div>';
+            resDiv.innerHTML = html;
+        } else {
+            resDiv.innerHTML = '<p style="color:#666;text-align:center;font-size:12px;">Anime tidak ditemukan.</p>';
+        }
+    }).catch(err => {
+        resDiv.innerHTML = '<p style="color:var(--primary);text-align:center;font-size:12px;">Gagal memuat pencarian. Coba lagi.</p>';
+    });
+};
+
+window.renderAnimeHistory = function() {
+    let histDiv = document.getElementById('anime-history-results');
+    let history = JSON.parse(localStorage.getItem('ytpro_anime_history')) || [];
+    
+    if(history.length === 0) {
+        histDiv.innerHTML = '<p style="color:#666;text-align:center;font-size:12px;margin-top:20px;">Belum ada riwayat tontonan Anime.</p>';
+        return;
+    }
+    
+    let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+    history.reverse().forEach((anime, idx) => {
+        let titleStr = anime.title.replace(/'/g, "\\'");
+        html += `
+        <div class="card slide-up delay-${idx%3+1}" onclick="if(typeof window.fetchAnimeDetail === 'function') { window.fetchAnimeDetail('${anime.id}', '${titleStr}'); }" style="border-color:#ff9900; background:#000a14;">
+            <img src="${anime.img}" class="card-img" style="border:1px solid #ff9900;">
+            <div class="card-info">
+                <h3 style="color:#fff;">${anime.title}</h3>
+                <p style="color:#aaa;">Terakhir dilihat</p>
+            </div>
+            <button class="remove-btn" onclick="event.stopPropagation(); window.removeAnimeHistory('${anime.id}')" style="color:var(--primary); padding:10px; font-size:16px;">✕</button>
+        </div>`;
+    });
+    html += '</div>';
+    html += '<button class="btn-no" style="width:100%; border-color:var(--primary); color:var(--primary); padding:12px; margin-top:20px; border-radius:12px; font-size:13px; font-weight:bold;" onclick="window.clearAnimeHistory()">HAPUS SEMUA RIWAYAT</button>';
+    histDiv.innerHTML = html;
+};
+
+window.removeAnimeHistory = function(id) {
+    let history = JSON.parse(localStorage.getItem('ytpro_anime_history')) || [];
+    history = history.filter(h => h.id !== id);
+    localStorage.setItem('ytpro_anime_history', JSON.stringify(history));
+    window.renderAnimeHistory();
+};
+
+window.clearAnimeHistory = function() {
+    if(typeof window.showConfirm === 'function') {
+        window.showConfirm("Hapus semua riwayat anime?", function(){
+            localStorage.removeItem('ytpro_anime_history');
+            window.renderAnimeHistory();
+            window.showToast("Riwayat Anime dibersihkan", "success");
+        });
+    } else {
+        localStorage.removeItem('ytpro_anime_history');
+        window.renderAnimeHistory();
+    }
+};
+
+// Pencegat tombol back HP untuk panel Anime
+if (typeof window.oldHandleBackAnime === 'undefined') {
+    window.oldHandleBackAnime = window.handleBackButton;
+    window.handleBackButton = function() {
+        let animePanel = document.getElementById('anime-tool-view');
+        if(animePanel && animePanel.classList.contains('active')) {
+            window.closeAnimeTool();
+            return "handled";
+        }
+        if(typeof window.oldHandleBackAnime === 'function') {
+            return window.oldHandleBackAnime();
+        }
+        return "exit";
+    };
+}
