@@ -883,3 +883,126 @@ setInterval(function() {
         }
     }
 }, 1000);
+
+// =========================================================================
+// 12. MESIN UPDATE PROFILE & UPLOAD AVATAR
+// =========================================================================
+window.selectedAvatarBase64 = null;
+
+// Eksekusi set-up avatar saat aplikasi pertama dibuka
+setTimeout(() => {
+    let uname = localStorage.getItem('ytpro_username') || "Guest";
+    let avatarPath = localStorage.getItem('ytpro_avatar') || "";
+    let finalAvatarUrl = `https://ui-avatars.com/api/?name=${uname}&background=002244&color=00e5ff`;
+    
+    // Asumsi PTERODACTYL_API_URL sudah didefinisikan secara global dari awal di app Anda
+    if (avatarPath && typeof PTERODACTYL_API_URL !== 'undefined') {
+        finalAvatarUrl = PTERODACTYL_API_URL + avatarPath;
+    }
+    let hImg = document.getElementById('header-avatar-img');
+    if(hImg) hImg.src = finalAvatarUrl;
+}, 3000);
+
+window.openProfileView = function() {
+    let uname = localStorage.getItem('ytpro_username');
+    if(!uname) {
+        window.showToast("Anda harus Login terlebih dahulu!", "error");
+        document.getElementById('auth-modal').classList.add('show');
+        return;
+    }
+    
+    document.getElementById('profile-username-txt').innerText = uname;
+    document.getElementById('profile-reg-txt').innerText = "Terdaftar: " + (localStorage.getItem('ytpro_reg_time') || "Data Lama");
+    document.getElementById('profile-login-txt').innerText = "Login Terakhir: " + (localStorage.getItem('ytpro_log_time') || "Baru saja");
+    
+    let avatarPath = localStorage.getItem('ytpro_avatar') || "";
+    let finalUrl = avatarPath && typeof PTERODACTYL_API_URL !== 'undefined' ? (PTERODACTYL_API_URL + avatarPath) : `https://ui-avatars.com/api/?name=${uname}&background=002244&color=00e5ff`;
+    
+    document.getElementById('profile-avatar-img').src = finalUrl;
+    window.selectedAvatarBase64 = null; // Reset seleksi
+    document.getElementById('profile-old-pass').value = '';
+    document.getElementById('profile-new-pass').value = '';
+    
+    document.getElementById('profile-view').classList.add('active');
+};
+
+window.handleAvatarSelect = function(event) {
+    let file = event.target.files[0];
+    if(file) {
+        if(file.size > 3000000) { // Limit 3MB
+            window.showToast("Ukuran foto maksimal 3MB!", "error");
+            return;
+        }
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            window.selectedAvatarBase64 = e.target.result; // Menyimpan data Base64
+            document.getElementById('profile-avatar-img').src = window.selectedAvatarBase64; // Preview Instan
+            window.showToast("Foto siap! Jangan lupa ketik password lama untuk menyimpan.", "info");
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+window.updateProfileData = function() {
+    let uname = localStorage.getItem('ytpro_username');
+    let oldPass = document.getElementById('profile-old-pass').value.trim();
+    let newPass = document.getElementById('profile-new-pass').value.trim();
+    
+    if(!oldPass) {
+        window.showToast("Wajib mengisi Password Lama untuk validasi keamanan!", "error");
+        return;
+    }
+    
+    let btn = document.getElementById('btn-save-profile');
+    btn.innerText = "MENYIMPAN..."; btn.disabled = true;
+    
+    fetch(PTERODACTYL_API_URL + '/api/update_profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            username: uname,
+            password: oldPass,
+            new_password: newPass,
+            avatar_b64: window.selectedAvatarBase64
+        })
+    })
+    .then(r => r.json())
+    .then(res => {
+        btn.innerText = "SIMPAN & UPLOAD"; btn.disabled = false;
+        if(res.status === 'success') {
+            window.showToast("Profile & Avatar Berhasil Diperbarui!", "success");
+            
+            // Simpan password baru ke lokal jika user tadi menggantinya
+            if(newPass) localStorage.setItem('ytpro_password', newPass);
+            
+            // Perbarui URL Avatar dari server ke sistem lokal (Header Navbar juga)
+            if(res.avatar) {
+                localStorage.setItem('ytpro_avatar', res.avatar);
+                document.getElementById('header-avatar-img').src = PTERODACTYL_API_URL + res.avatar;
+            }
+            
+            document.getElementById('profile-view').classList.remove('active');
+        } else {
+            window.showToast(res.message || "Gagal menyimpan. Password salah?", "error");
+        }
+    }).catch(e => {
+        btn.innerText = "SIMPAN & UPLOAD"; btn.disabled = false;
+        window.showToast("Gagal terhubung ke server!", "error");
+    });
+};
+
+// Tambahkan "profile-view" ke dalam sistem PENCEGAT TOMBOL BACK (agar ketutup pas di back)
+if (typeof window.oldHandleBackSocialProfile === 'undefined') {
+    window.oldHandleBackSocialProfile = window.handleBackButton;
+    window.handleBackButton = function() {
+        let profilePanel = document.getElementById('profile-view');
+        if(profilePanel && profilePanel.classList.contains('active')) {
+            profilePanel.classList.remove('active');
+            return "handled";
+        }
+        if(typeof window.oldHandleBackSocialProfile === 'function') {
+            return window.oldHandleBackSocialProfile();
+        }
+        return "exit";
+    };
+}
