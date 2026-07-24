@@ -184,10 +184,15 @@ window.renderAnimeHistory=function(){
     c.innerHTML=window.renderAnimeList(window.animeHist);
 };
 window.switchAnimeTab=function(t){
-    ['home','search','history'].forEach(x=>{ document.getElementById('anime-tab-'+x).style.display='none'; document.getElementById('nav-anime-'+x).classList.remove('active'); document.getElementById('nav-anime-'+x).style.color='#555'; });
-    document.getElementById('anime-tab-'+t).style.display='block';
-    let activeNav=document.getElementById('nav-anime-'+t); activeNav.classList.add('active'); activeNav.style.color='#ff9900';
-    if(t==='history') window.renderAnimeHistory();
+    ['home','search','history'].forEach(x=>{ 
+        let tab = document.getElementById('anime-tab-'+x); if(tab) tab.style.display='none'; 
+        let btn = document.getElementById('tab-btn-anime-'+x);
+        if(btn) { btn.classList.remove('active'); btn.style.color='#888'; }
+    });
+    let activeTab = document.getElementById('anime-tab-'+t); if(activeTab) activeTab.style.display='block';
+    let activeNav = document.getElementById('tab-btn-anime-'+t); 
+    if(activeNav) { activeNav.classList.add('active'); activeNav.style.color='#ff9900'; }
+    if(t==='history' && typeof window.renderAnimeHistory === 'function') window.renderAnimeHistory();
 };
 window.renderAnimeList=function(arr){
     let h=`<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;">`;
