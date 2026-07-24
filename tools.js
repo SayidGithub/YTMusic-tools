@@ -803,7 +803,7 @@ setInterval(function() {
 }, 500);
 
 // ==========================================
-// 10. MESIN PENAMBAL PROGRESS BAR (ANTI-KELEWAT / ANTI-HILANG)
+// 10. MESIN PENAMBAL PROGRESS BAR (SEBELUMNYA)
 // ==========================================
 setInterval(function() {
     let seekBar = document.getElementById('seek-bar');
@@ -815,14 +815,71 @@ setInterval(function() {
         let duration = audioPlayer.duration;
         let percent = (current / duration) * 100;
         
-        // Paksa nilai range input agar selalu sinkron dengan posisi audio asli
         if(document.activeElement !== seekBar) {
             seekBar.value = percent;
         }
         
-        // Tambahkan efek linear gradient merah (track fill) secara dinamis agar tidak pernah kelewat
         seekBar.style.background = `linear-gradient(to right, var(--primary) ${percent}%, #333 ${percent}%)`;
     } else {
         seekBar.style.background = `linear-gradient(to right, var(--primary) 0%, #333 0%)`;
     }
 }, 100);
+
+// ==========================================
+// 11. MESIN ANTI-STUCK (PENGOBAT LOADING LAMA & GAGAL EKSTRAK)
+// ==========================================
+window.stuckMonitorCount = 0;
+window.lastStuckText = "";
+
+setInterval(function() {
+    let titleEl = document.getElementById('mini-title');
+    let audioEl = document.getElementById('local-audio-player');
+    
+    if(!titleEl || !audioEl) return;
+    
+    let txt = titleEl.innerText || "";
+    // Deteksi jika UI sedang dalam fase loading yang rawan stuck
+    let isLoading = txt.includes("Mengekstrak stream") || 
+                    txt.includes("Mencari rekomendasi") || 
+                    txt.includes("Memuat") ||
+                    txt.includes("Menghubungkan");
+    
+    if(isLoading) {
+        if(window.lastStuckText === txt) {
+            window.stuckMonitorCount++;
+        } else {
+            window.lastStuckText = txt;
+            window.stuckMonitorCount = 0;
+        }
+        
+        // Jika ngestuck di tulisan yang sama lebih dari 12 detik
+        if(window.stuckMonitorCount >= 12) {
+            window.stuckMonitorCount = 0;
+            if(typeof window.showToast === 'function') {
+                window.showToast("Koneksi server lambat (Timeout). Memaksa lewati lagu...", "error");
+            }
+            
+            // Hentikan paksa audio yang mungkin nyangkut
+            audioEl.pause();
+            audioEl.removeAttribute('src');
+            audioEl.load();
+            
+            // Paksa putar lagu selanjutnya di antrean
+            if(typeof window.playNextInQueue === 'function') {
+                setTimeout(() => window.playNextInQueue(), 500);
+            }
+        }
+    } else {
+        window.stuckMonitorCount = 0;
+        window.lastStuckText = "";
+    }
+    
+    // Deteksi End-of-Track stuck (Lagu udah habis waktunya tapi gak mau ganti)
+    if(audioEl.duration && audioEl.currentTime >= (audioEl.duration - 0.5) && audioEl.duration > 0 && !isLoading) {
+        window.stuckMonitorCount++;
+        if(window.stuckMonitorCount >= 5) { // Nyangkut 5 detik di ujung lagu
+            window.stuckMonitorCount = 0;
+            if(typeof window.playNextInQueue === 'function') window.playNextInQueue();
+        }
+    }
+}, 1000);
