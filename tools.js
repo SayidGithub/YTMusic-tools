@@ -684,21 +684,21 @@ window.generateIQC = function() {
     ctx.font = `bold ${baseFontSize * 0.85}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
     ctx.fillStyle = "white";
     ctx.textAlign = "left";
-    ctx.fillText(provider, canvas.width * 0.13, canvas.height * 0.023); // X 13%, Y 2.3%
+    ctx.fillText(provider, canvas.width * 0.10, canvas.height * 0.025); // X 10%, Y 2.5%
     
     // 2. Tulis Jam Atas
     ctx.textAlign = "center";
-    ctx.fillText(jamAtas, canvas.width / 2, canvas.height * 0.023);
+    ctx.fillText(jamAtas, canvas.width / 2, canvas.height * 0.025); // Y 2.5%
     
     // 3. Tulis Pesan Quotes (Di dalam Bubble)
     ctx.textBaseline = "top"; 
-    ctx.font = `${baseFontSize * 1.15}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+    ctx.font = `${baseFontSize * 1.1}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
     ctx.fillStyle = "white";
     ctx.textAlign = "left";
     
-    let maxWidth = canvas.width * 0.63; 
-    let xPesan = canvas.width * 0.075;   // Geser teks ke kanan masuk ke dalam bubble
-    let yPesan = canvas.height * 0.380;  // Turunkan agar tidak menabrak atap bubble
+    let maxWidth = canvas.width * 0.62; 
+    let xPesan = canvas.width * 0.060;   // Geser teks lebih ke kiri sedikit (margin kiri bubble pas)
+    let yPesan = canvas.height * 0.395;  // Turunkan teks pesan ke bawah (masuk bubble, tidak nabrak atap)
     let lineHeight = baseFontSize * 1.4;
     
     let words = pesan.split(' ');
@@ -724,10 +724,10 @@ window.generateIQC = function() {
 
     // 4. Tulis Jam Pesan (Pojok Kanan Bawah Bubble)
     ctx.textBaseline = "bottom"; 
-    ctx.font = `${baseFontSize * 0.6}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+    ctx.font = `${baseFontSize * 0.55}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
     ctx.fillStyle = "#a3a3a3"; // Abu-abu
     ctx.textAlign = "right";
-    ctx.fillText(jamPesan, canvas.width * 0.69, canvas.height * 0.435); // Geser X ke kiri, Y ke atas masuk bubble
+    ctx.fillText(jamPesan, canvas.width * 0.72, canvas.height * 0.428); // Naikkan Y (ke dalam bubble), geser X ke kanan
     
     document.getElementById('iqc-result-container').style.display = 'block';
     window.showToast("Fake Chat berhasil diracik!", "success");
