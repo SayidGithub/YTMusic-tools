@@ -8,7 +8,6 @@ window.openTikTokTool = function() {
 };
 window.closeTikTokTool = function() {
     document.getElementById('tiktok-tool-view').classList.remove('active');
-    // Pembunuh Audio Total
     let vid = document.getElementById('tiktok-video-preview'); if(vid) { vid.pause(); vid.removeAttribute('src'); vid.load(); }
     let aud = document.getElementById('tiktok-audio-preview'); if(aud) { aud.pause(); aud.removeAttribute('src'); aud.load(); }
 };
@@ -17,7 +16,6 @@ window.processTikTokAJAX = function() {
     let url = document.getElementById('tiktok-url-input-tool').value.trim();
     if(!url) { window.showToast("URL TikTok tidak boleh kosong!", "error"); return; }
     
-    // Matikan audio/video lama sebelum proses link baru
     let oldVid = document.getElementById('tiktok-video-preview'); if(oldVid) { oldVid.pause(); oldVid.removeAttribute('src'); oldVid.load(); }
     let oldAud = document.getElementById('tiktok-audio-preview'); if(oldAud) { oldAud.pause(); oldAud.removeAttribute('src'); oldAud.load(); }
     
@@ -102,7 +100,6 @@ window.currentIgData = null;
 window.openIgTool = function() { document.getElementById('ig-tool-view').classList.add('active'); };
 window.closeIgTool = function() {
     document.getElementById('ig-tool-view').classList.remove('active');
-    // Pembunuh Audio Total
     let vid = document.getElementById('ig-video-preview'); if(vid) { vid.pause(); vid.removeAttribute('src'); vid.load(); }
     let aud = document.getElementById('ig-audio-preview'); if(aud) { aud.pause(); aud.removeAttribute('src'); aud.load(); }
 };
@@ -111,7 +108,6 @@ window.processIgAJAX = function() {
     let url = document.getElementById('ig-url-input-tool').value.trim();
     if(!url) { window.showToast("URL Instagram tidak boleh kosong!", "error"); return; }
     
-    // Matikan audio/video lama sebelum proses link baru
     let oldVid = document.getElementById('ig-video-preview'); if(oldVid) { oldVid.pause(); oldVid.removeAttribute('src'); oldVid.load(); }
     let oldAud = document.getElementById('ig-audio-preview'); if(oldAud) { oldAud.pause(); oldAud.removeAttribute('src'); oldAud.load(); }
     
@@ -236,7 +232,7 @@ window.loadAnimeHome=function(){
 window.searchAnimeApi=function(){
     let q=document.getElementById('anime-search-input').value.trim(); if(!q)return;
     let rDiv=document.getElementById('anime-search-results');
-    rDiv.innerHTML=`<div style="text-align:center;padding:30px 0;"><p style="color:#888;font-size:12px;">Mencari "${q}"...</p></div>`;
+    rDiv.innerHTML=`<div style="text-align:center;padding:30px 0;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#ff9900;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#888;font-size:12px;">Mencari anime...</p></div>`;
     fetch(`https://www.sankavollerei.web.id/anime/search?query=${encodeURIComponent(q)}`).then(r=>r.json()).then(d=>{
         if(d&&d.data&&d.data.animeList&&d.data.animeList.length>0){ rDiv.innerHTML=window.renderAnimeList(d.data.animeList); }else{ rDiv.innerHTML=`<p style="color:#888;text-align:center;">Tidak ditemukan.</p>`; }
     }).catch(e=>{ rDiv.innerHTML=`<p style="color:var(--primary);text-align:center;">Pencarian error/API tidak merespons.</p>`; });
@@ -651,6 +647,115 @@ window.setupSlider = function() {
     document.addEventListener('touchmove', slide, {passive: true});
 };
 
+// =========================================================================
+// 7. IQC GENERATOR (FAKE CHAT iOS)
+// =========================================================================
+window.openIqcTool = function() {
+    document.getElementById('iqc-tool-view').classList.add('active');
+};
+
+window.closeIqcTool = function() {
+    document.getElementById('iqc-tool-view').classList.remove('active');
+};
+
+window.generateIQC = function() {
+    let img = document.getElementById('iqc-template-img');
+    if (!img || !img.complete || img.naturalWidth === 0) {
+        window.showToast("Gambar mentahan belum termuat!", "error");
+        return;
+    }
+    
+    let pesan = document.getElementById('iqc-pesan').value || "Disana terang disinii padam";
+    let provider = document.getElementById('iqc-provider').value || "INDOSAT LTE";
+    let jamAtas = document.getElementById('iqc-jam-atas').value || "10:53";
+    let jamPesan = document.getElementById('iqc-jam-pesan').value || "10:53";
+    
+    let canvas = document.getElementById('iqc-canvas');
+    let ctx = canvas.getContext('2d');
+    
+    // Set ukuran canvas sama persis dengan ukuran gambar asli
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    
+    // 1. Gambar Template Mentahan
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    
+    // Asumsi ukuran font proporsional dengan lebar gambar (Responsif)
+    let baseFontSize = canvas.width * 0.033; // Sekitar 35px untuk resolusi 1080
+    
+    // 2. Tulis Provider (Pojok Kiri Atas, Sebelah Bar Sinyal)
+    ctx.font = `bold ${baseFontSize * 0.9}px Arial, sans-serif`;
+    ctx.fillStyle = "white";
+    ctx.textAlign = "left";
+    // Asumsi sinyal ada di x = 5%, teks provider di x = 12%
+    ctx.fillText(provider, canvas.width * 0.12, canvas.height * 0.038);
+    
+    // 3. Tulis Jam Atas (Tengah Status Bar)
+    ctx.font = `bold ${baseFontSize * 0.9}px Arial, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(jamAtas, canvas.width / 2, canvas.height * 0.038);
+    
+    // 4. Tulis Jam Pesan (Pojok Kanan Bawah dalam Bubble Grey)
+    // Menempel di sudut bubble
+    ctx.font = `${baseFontSize * 0.65}px Arial, sans-serif`;
+    ctx.fillStyle = "#a3a3a3"; // Abu-abu
+    ctx.textAlign = "right";
+    ctx.fillText(jamPesan, canvas.width * 0.74, canvas.height * 0.437);
+    
+    // 5. Tulis Pesan Quotes (Di dalam Bubble) dengan Auto-Wrap (Turun Baris Otomatis)
+    ctx.font = `${baseFontSize * 1.15}px Arial, sans-serif`;
+    ctx.fillStyle = "white";
+    ctx.textAlign = "left";
+    
+    let maxWidth = canvas.width * 0.66; // Maksimal batas kanan bubble
+    let xPesan = canvas.width * 0.055;  // Margin kiri bubble
+    let yPesan = canvas.height * 0.395; // Posisi Y awal pesan
+    let lineHeight = baseFontSize * 1.5;
+    
+    let words = pesan.split(' ');
+    let line = '';
+    let lines = [];
+    
+    for(let n = 0; n < words.length; n++) {
+        let testLine = line + words[n] + ' ';
+        let metrics = ctx.measureText(testLine);
+        let testWidth = metrics.width;
+        // Jika melebihi lebar maksimum bubble, paksa turun baris
+        if (testWidth > maxWidth && n > 0) {
+            lines.push(line);
+            line = words[n] + ' ';
+        } else {
+            line = testLine;
+        }
+    }
+    lines.push(line);
+    
+    // Eksekusi print per baris
+    for(let k = 0; k < lines.length; k++) {
+        ctx.fillText(lines[k], xPesan, yPesan + (k * lineHeight));
+    }
+    
+    // Tampilkan hasil dan tombol download
+    document.getElementById('iqc-result-container').style.display = 'block';
+    window.showToast("Fake Chat berhasil diracik!", "success");
+};
+
+window.downloadIQC = function() {
+    let canvas = document.getElementById('iqc-canvas');
+    let dataUrl = canvas.toDataURL("image/jpeg", 1.0);
+    
+    // Menggunakan trik anchor click karena base64 file dari canvas
+    let a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = "IQC_Generated_" + Date.now() + ".jpg";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    window.showToast("Mendownload hasil ke Galeri...", "info");
+};
+
+
 // ==========================================
 // 8. PENCEGAT TOMBOL BACK (TUTUP TOOLS & MATIKAN MEDIA)
 // ==========================================
@@ -658,7 +763,7 @@ if (typeof window.oldHandleBackSocial === 'undefined') {
     window.oldHandleBackSocial = window.handleBackButton;
     window.handleBackButton = function() {
         let handled = false;
-        let tools = ['tiktok-tool-view', 'ig-tool-view', 'upscale-tool-view', 'network-tool-view', 'anime-tool-view'];
+        let tools = ['tiktok-tool-view', 'ig-tool-view', 'upscale-tool-view', 'network-tool-view', 'anime-tool-view', 'iqc-tool-view'];
         
         tools.forEach(id => {
             let panel = document.getElementById(id);
@@ -668,6 +773,7 @@ if (typeof window.oldHandleBackSocial === 'undefined') {
                 else if(id === 'upscale-tool-view') window.closeUpscaleTool();
                 else if(id === 'network-tool-view') window.closeNetworkTool();
                 else if(id === 'anime-tool-view') window.closeAnimeTool();
+                else if(id === 'iqc-tool-view') window.closeIqcTool();
                 handled = true;
             }
         });
@@ -691,7 +797,7 @@ setInterval(function() {
     let isTabToolsActive = tabTools && tabTools.classList.contains('active');
     
     // Cek spesifik panel tool yang terbuka (menutupi dashboard)
-    let activeTools = ['tiktok-tool-view', 'ig-tool-view', 'network-tool-view', 'upscale-tool-view', 'anime-tool-view', 'app-info-view', 'dev-view', 'terminal-view', 'history-update-view', 'settings-modal'];
+    let activeTools = ['tiktok-tool-view', 'ig-tool-view', 'network-tool-view', 'upscale-tool-view', 'anime-tool-view', 'iqc-tool-view', 'app-info-view', 'dev-view', 'terminal-view', 'history-update-view', 'settings-modal'];
     
     let isAnyToolPanelOpen = activeTools.some(id => {
         let el = document.getElementById(id);
