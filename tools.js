@@ -648,7 +648,7 @@ window.setupSlider = function() {
 };
 
 // =========================================================================
-// 7. IQC GENERATOR (FAKE CHAT iOS) - POSISI DIPERBAIKI (FINAL FIX)
+// 7. IQC GENERATOR (FAKE CHAT iOS)
 // =========================================================================
 window.openIqcTool = function() {
     document.getElementById('iqc-tool-view').classList.add('active');
@@ -679,26 +679,23 @@ window.generateIQC = function() {
     
     let baseFontSize = canvas.width * 0.035; 
     
-    // 1. Tulis Provider (Mundur ke Kiri)
     ctx.textBaseline = "middle"; 
     ctx.font = `bold ${baseFontSize * 0.85}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
     ctx.fillStyle = "white";
     ctx.textAlign = "left";
-    ctx.fillText(provider, canvas.width * 0.12, canvas.height * 0.025); // Mundur dari 0.16 ke 0.12
+    ctx.fillText(provider, canvas.width * 0.12, canvas.height * 0.025); 
     
-    // 2. Tulis Jam Atas
     ctx.textAlign = "center";
     ctx.fillText(jamAtas, canvas.width / 2, canvas.height * 0.025); 
     
-    // 3. Tulis Pesan Quotes (Di dalam Bubble, Turun ke Bawah)
     ctx.textBaseline = "top"; 
     ctx.font = `${baseFontSize * 1.15}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
     ctx.fillStyle = "white";
     ctx.textAlign = "left";
     
     let maxWidth = canvas.width * 0.63; 
-    let xPesan = canvas.width * 0.065;   // Margin kiri pas dengan bubble
-    let yPesan = canvas.height * 0.380;  // TURUNKAN TEKS (Agar tidak nabrak atap bubble abu-abu)
+    let xPesan = canvas.width * 0.065;   
+    let yPesan = canvas.height * 0.380;  
     let lineHeight = baseFontSize * 1.4;
     
     let words = pesan.split(' ');
@@ -722,12 +719,11 @@ window.generateIQC = function() {
         ctx.fillText(lines[k], xPesan, yPesan + (k * lineHeight));
     }
 
-    // 4. Tulis Jam Pesan (Naikkan ke dalam Bubble)
     ctx.textBaseline = "bottom"; 
     ctx.font = `${baseFontSize * 0.6}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
-    ctx.fillStyle = "#a3a3a3"; // Abu-abu
+    ctx.fillStyle = "#a3a3a3"; 
     ctx.textAlign = "right";
-    ctx.fillText(jamPesan, canvas.width * 0.73, canvas.height * 0.435); // NAIKKAN (agar masuk ke dalam kotak)
+    ctx.fillText(jamPesan, canvas.width * 0.73, canvas.height * 0.435); 
     
     document.getElementById('iqc-result-container').style.display = 'block';
     window.showToast("Fake Chat berhasil diracik!", "success");
@@ -751,23 +747,82 @@ window.downloadIQC = function() {
 // 8. PENCEGAT TOMBOL BACK (TUTUP TOOLS & MATIKAN MEDIA)
 // ==========================================
 if (typeof window.oldHandleBackSocial === 'undefined') {
-    window.Oke, saya paham masalahnya dari `Screenshot_20260724-163730.png` dan `Screenshot_20260724-163644.png`. Garis merahnya (progress fill) jadi balapan atau kelewat dari titik merahnya (thumb) pas kamu ganti lagu, dan kadang malah hilang.
+    window.oldHandleBackSocial = window.handleBackButton;
+    window.handleBackButton = function() {
+        let handled = false;
+        let tools = ['tiktok-tool-view', 'ig-tool-view', 'upscale-tool-view', 'network-tool-view', 'anime-tool-view', 'iqc-tool-view'];
+        
+        tools.forEach(id => {
+            let panel = document.getElementById(id);
+            if(panel && panel.classList.contains('active')) {
+                if(id === 'tiktok-tool-view') window.closeTikTokTool();
+                else if(id === 'ig-tool-view') window.closeIgTool();
+                else if(id === 'upscale-tool-view') window.closeUpscaleTool();
+                else if(id === 'network-tool-view') window.closeNetworkTool();
+                else if(id === 'anime-tool-view') window.closeAnimeTool();
+                else if(id === 'iqc-tool-view') window.closeIqcTool();
+                handled = true;
+            }
+        });
+        
+        if(handled) return "handled";
+        if(typeof window.oldHandleBackSocial === 'function') {
+            return window.oldHandleBackSocial();
+        }
+        return "exit";
+    };
+}
 
-Karena kamu nggak melampirkan kodenya dan perintahmu **MUTLAK** untuk tidak mengubah atau menghapus bagian lain, kamu hanya perlu mencari dan memperbaiki logika di **3 bagian spesifik ini di dalam kodemu**:
+// ==========================================
+// 9. MESIN OTOMATIS PLAY/PAUSE VIDEO BANNER (PENGHEMAT RAM)
+// ==========================================
+setInterval(function() {
+    let bannerVid = document.getElementById('tools-banner-video');
+    if(!bannerVid) return;
+    
+    let tabTools = document.getElementById('tab-tools');
+    let isTabToolsActive = tabTools && tabTools.classList.contains('active');
+    
+    let activeTools = ['tiktok-tool-view', 'ig-tool-view', 'network-tool-view', 'upscale-tool-view', 'anime-tool-view', 'iqc-tool-view', 'app-info-view', 'dev-view', 'terminal-view', 'history-update-view', 'settings-modal'];
+    
+    let isAnyToolPanelOpen = activeTools.some(id => {
+        let el = document.getElementById(id);
+        return el && (el.classList.contains('active') || el.classList.contains('show'));
+    });
+    
+    if (isTabToolsActive && !isAnyToolPanelOpen) {
+        if(bannerVid.paused) {
+            let p = bannerVid.play();
+            if(p !== undefined) p.catch(e => {}); 
+        }
+    } else {
+        if(!bannerVid.paused) {
+            bannerVid.pause();
+        }
+    }
+}, 500);
 
-### 1. Fungsi Ganti Lagu Manual (Next / Previous / Skip)
-Masalah progress bar yang "kelewat" (desinkronisasi antara garis dan titik) terjadi karena *state* atau *value* dari lagu sebelumnya masih tersimpan sepersekian detik saat lagu baru dimainkan.
-*   **Yang harus dibenarkan:** Cari fungsi tempat kamu mengatur tombol *Next/Prev* (misalnya `nextTrack()`, `skipForward()`, atau `onTrackChange`). 
-*   **Tindakan:** Pastikan tepat di awal fungsi tersebut, kamu **mereset nilai progress bar (currentTime/progress value) secara paksa ke angka `0`** sebelum lagu baru di-load. 
-
-### 2. Event Listener / Fungsi Update Waktu (Time Update / OnProgress)
-Titik merah (thumb) dan garis merah (track fill) harus mengambil data dari *sumber variabel yang sama*. Kalau garisnya kelewat, berarti UI progress bar-mu membaca nilai maksimal (duration) dari lagu lama, tapi waktunya (current time) dari lagu baru.
-*   **Yang harus dibenarkan:** Cari fungsi yang bertugas mengupdate berjalannya waktu (misalnya `ontimeupdate`, `onProgressChanged`, atau `setInterval` yang mengupdate slider).
-*   **Tindakan:** Pastikan perhitungan persentase progress bar adalah `(currentTime / duration) * 100`. Jangan biarkan UI mengupdate garis merah kalau nilai `duration` lagu yang baru belum didapatkan (masih `NaN` atau `0`). 
-
-### 3. Bagian Inisialisasi / Render Progress Bar (Untuk masalah tidak muncul)
-Kalau progress bar-nya sempat tidak ada sama sekali, itu biasanya karena sistem gagal membaca durasi (duration) lagu saat pertama kali di-load, sehingga komponen UI disembunyikan atau error (width menjadi 0).
-*   **Yang harus dibenarkan:** Cari bagian kode saat lagu pertama kali di-load (misalnya `onLoad`, `onReady`, atau fungsi inisialisasi *metadata* audio).
-*   **Tindakan:** Berikan nilai *fallback* (cadangan). Jika `duration` belum ter-load, set nilai maksimum progress bar ke `100` atau `0` sementara, sampai metadata lagu benar-benar masuk, baru tampilkan.
-
-**Intinya:** Cari variabel `progress`, `value`, atau `currentTime` di kodemu, lalu **RESET ke `0`** setiap kali ada *trigger* ganti lagu manual. Fokus benerin di baris itu saja, biarkan kode sisanya tetap seperti semula!
+// ==========================================
+// 10. MESIN PENAMBAL PROGRESS BAR (ANTI-KELEWAT / ANTI-HILANG)
+// ==========================================
+setInterval(function() {
+    let seekBar = document.getElementById('seek-bar');
+    let audioPlayer = document.getElementById('local-audio-player');
+    if(!seekBar || !audioPlayer) return;
+    
+    if(audioPlayer.duration && !isNaN(audioPlayer.duration)) {
+        let current = audioPlayer.currentTime || 0;
+        let duration = audioPlayer.duration;
+        let percent = (current / duration) * 100;
+        
+        // Paksa nilai range input agar selalu sinkron dengan posisi audio asli
+        if(document.activeElement !== seekBar) {
+            seekBar.value = percent;
+        }
+        
+        // Tambahkan efek linear gradient merah (track fill) secara dinamis agar tidak pernah kelewat
+        seekBar.style.background = `linear-gradient(to right, var(--primary) ${percent}%, #333 ${percent}%)`;
+    } else {
+        seekBar.style.background = `linear-gradient(to right, var(--primary) 0%, #333 0%)`;
+    }
+}, 100);
