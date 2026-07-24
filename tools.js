@@ -878,14 +878,31 @@ setInterval(function() {
 }, 1000);
 
 // =========================================================================
-// 12. MESIN UPDATE PROFILE & UPLOAD AVATAR (FIX AUTENTIKASI CASING)
+// 12. MESIN UPDATE PROFILE & UPLOAD AVATAR (SMART DETECTOR)
 // =========================================================================
 window.selectedAvatarBase64 = null;
 
+// Fungsi pintar mencari username asli dari memori
+function getRealUsername() {
+    let uname = "Guest";
+    // 1. Coba cari dari text Sidebar yang sudah dirender sistem utama
+    let sidebarName = document.getElementById('sidebar-username-txt');
+    if(sidebarName && sidebarName.innerText.trim().toUpperCase() !== "GUEST") {
+        uname = sidebarName.innerText.trim();
+    }
+    // 2. Coba cari dari semua kemungkinan kunci memori HP (localStorage)
+    if(uname.toUpperCase() === "GUEST") {
+        uname = localStorage.getItem('ytpro_username') || 
+                localStorage.getItem('username') || 
+                localStorage.getItem('user') || 
+                localStorage.getItem('yt_uname') || 
+                "Guest";
+    }
+    return uname;
+}
+
 setTimeout(() => {
-    // Ambil langsung dari memori lokal agar huruf besar/kecilnya akurat 100%
-    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
-    
+    let uname = getRealUsername();
     let avatarPath = localStorage.getItem('ytpro_avatar') || "";
     let finalAvatarUrl = `https://ui-avatars.com/api/?name=${uname}&background=002244&color=00e5ff`;
     
@@ -897,8 +914,15 @@ setTimeout(() => {
 }, 3000);
 
 window.openProfileView = function() {
-    // Ambil langsung dari memori lokal agar huruf besar/kecilnya akurat 100%
-    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
+    let uname = getRealUsername();
+
+    // JIKA MASIH GUEST, BERARTI SESI MEMORI KOSONG. WAJIB LOGIN DULU!
+    if(uname.toUpperCase() === "GUEST" || !uname) {
+        window.showToast("Sesi habis! Silakan Login ke akun kamu dulu ya sayang.", "error");
+        let authModal = document.getElementById('auth-modal');
+        if(authModal) authModal.classList.add('show');
+        return;
+    }
 
     document.getElementById('profile-username-txt').innerText = uname;
     document.getElementById('profile-reg-txt').innerText = "Status: Akun Aktif";
@@ -933,9 +957,13 @@ window.handleAvatarSelect = function(event) {
 };
 
 window.updateProfileData = function() {
-    // Ambil langsung dari memori lokal agar huruf besar/kecilnya akurat 100%
-    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
+    let uname = getRealUsername();
     
+    if(uname.toUpperCase() === "GUEST") {
+        window.showToast("Akses ditolak! Silakan login terlebih dahulu.", "error");
+        return;
+    }
+
     let oldPass = document.getElementById('profile-old-pass').value.trim();
     let newPass = document.getElementById('profile-new-pass').value.trim();
     
