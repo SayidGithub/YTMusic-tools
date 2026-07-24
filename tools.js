@@ -8,13 +8,18 @@ window.openTikTokTool = function() {
 };
 window.closeTikTokTool = function() {
     document.getElementById('tiktok-tool-view').classList.remove('active');
-    let vid = document.getElementById('tiktok-video-preview'); if(vid) { vid.pause(); vid.src = ""; }
-    let aud = document.getElementById('tiktok-audio-preview'); if(aud) { aud.pause(); aud.src = ""; }
+    // Pembunuh Audio Total
+    let vid = document.getElementById('tiktok-video-preview'); if(vid) { vid.pause(); vid.removeAttribute('src'); vid.load(); }
+    let aud = document.getElementById('tiktok-audio-preview'); if(aud) { aud.pause(); aud.removeAttribute('src'); aud.load(); }
 };
 window.processTikTokAJAX = function() {
     if(window.isOfflineMode) { window.showToast("Matikan Mode Offline untuk menggunakan Tools!", "error"); return; }
     let url = document.getElementById('tiktok-url-input-tool').value.trim();
     if(!url) { window.showToast("URL TikTok tidak boleh kosong!", "error"); return; }
+    
+    // Matikan audio/video lama sebelum proses link baru
+    let oldVid = document.getElementById('tiktok-video-preview'); if(oldVid) { oldVid.pause(); oldVid.removeAttribute('src'); oldVid.load(); }
+    let oldAud = document.getElementById('tiktok-audio-preview'); if(oldAud) { oldAud.pause(); oldAud.removeAttribute('src'); oldAud.load(); }
     
     document.getElementById('tiktok-tool-result').style.display = 'block';
     document.getElementById('tiktok-tool-status').style.display = 'block';
@@ -97,13 +102,18 @@ window.currentIgData = null;
 window.openIgTool = function() { document.getElementById('ig-tool-view').classList.add('active'); };
 window.closeIgTool = function() {
     document.getElementById('ig-tool-view').classList.remove('active');
-    let vid = document.getElementById('ig-video-preview'); if(vid) { vid.pause(); vid.src = ""; }
-    let aud = document.getElementById('ig-audio-preview'); if(aud) { aud.pause(); aud.src = ""; }
+    // Pembunuh Audio Total
+    let vid = document.getElementById('ig-video-preview'); if(vid) { vid.pause(); vid.removeAttribute('src'); vid.load(); }
+    let aud = document.getElementById('ig-audio-preview'); if(aud) { aud.pause(); aud.removeAttribute('src'); aud.load(); }
 };
 window.processIgAJAX = function() {
     if(window.isOfflineMode) { window.showToast("Matikan Mode Offline untuk menggunakan Tools!", "error"); return; }
     let url = document.getElementById('ig-url-input-tool').value.trim();
     if(!url) { window.showToast("URL Instagram tidak boleh kosong!", "error"); return; }
+    
+    // Matikan audio/video lama sebelum proses link baru
+    let oldVid = document.getElementById('ig-video-preview'); if(oldVid) { oldVid.pause(); oldVid.removeAttribute('src'); oldVid.load(); }
+    let oldAud = document.getElementById('ig-audio-preview'); if(oldAud) { oldAud.pause(); oldAud.removeAttribute('src'); oldAud.load(); }
     
     document.getElementById('ig-tool-result').style.display = 'block';
     document.getElementById('ig-tool-status').style.display = 'block';
@@ -385,8 +395,8 @@ window.downloadTTApiToDevice = function(targetUrl, ext, titlePrefix) {
     }
 };
 
-// // // // // =========================================================================
-// 5. INTERNET UPPING (SPEED TEST UPLOAD) - VIA PYTHON BACKEND (NATIVE SPEED)
+// =========================================================================
+// 5. INTERNET UPPING (SPEED TEST UPLOAD)
 // =========================================================================
 window.isNetTesting = false;
 window.netTestTimeout = null;
@@ -399,7 +409,6 @@ window.openNetworkTool = function() {
     document.getElementById('net-isp').innerText = "Memuat...";
     document.getElementById('net-speed-val').innerText = "0.00";
     
-    // API IP & ISP (Menggunakan GeoJS yang 100% bebas blokir CORS)
     fetch('https://get.geojs.io/v1/ip/geo.json')
         .then(res => res.json())
         .then(data => {
@@ -412,11 +421,10 @@ window.openNetworkTool = function() {
 };
 
 window.closeNetworkTool = function() {
-    if(window.isNetTesting) window.startUploadTest(); // Matikan otomatis jika keluar panel
+    if(window.isNetTesting) window.startUploadTest(); 
     document.getElementById('network-tool-view').classList.remove('active');
 };
 
-// Fungsi Menggambar Grafik Real-time
 window.drawGraph = function() {
     let canvas = document.getElementById('speedGraph');
     if(!canvas) return;
@@ -453,7 +461,6 @@ window.startUploadTest = async function() {
     let circle = document.getElementById('net-speed-circle');
     let canvas = document.getElementById('speedGraph');
     
-    // --- LOGIKA UNTUK STOP ---
     if (window.isNetTesting) {
         window.isNetTesting = false;
         clearTimeout(window.netTestTimeout);
@@ -463,7 +470,6 @@ window.startUploadTest = async function() {
         btn.style.boxShadow = '0 0 15px rgba(0,255,0,0.4)';
         circle.style.display = 'none';
         
-        // Perintahkan Python untuk STOP
         fetch('/stop_upping', { method: 'POST' }).catch(e=>console.log(e));
         
         window.showToast("Proses dihentikan.", "info");
@@ -472,7 +478,6 @@ window.startUploadTest = async function() {
     
     if(window.isOfflineMode) { window.showToast("Matikan Mode Offline!", "error"); return; }
     
-    // --- LOGIKA UNTUK START ---
     window.isNetTesting = true;
     btn.innerText = 'STOP PROSES UPLOAD';
     btn.style.background = '#ff003c';
@@ -483,7 +488,6 @@ window.startUploadTest = async function() {
     window.graphData = [];
     window.drawGraph();
     
-    // Auto Stop 2 Menit
     window.netTestTimeout = setTimeout(() => {
         if(window.isNetTesting) {
             window.startUploadTest();
@@ -493,7 +497,6 @@ window.startUploadTest = async function() {
     
     window.showToast("Menjalankan mesin native Python (UDP)...", "info");
     
-    // Perintahkan Python untuk START
     fetch('/start_upping', { method: 'POST' })
         .then(res => res.json())
         .then(data => {
@@ -506,7 +509,6 @@ window.startUploadTest = async function() {
             window.startUploadTest(); 
         });
 
-    // Loop bertanya ke Python: "Kecepatan sekarang berapa?" setiap 1 detik
     const monitorSpeed = async () => {
         while(window.isNetTesting) {
             await new Promise(r => setTimeout(r, 1000));
@@ -520,22 +522,21 @@ window.startUploadTest = async function() {
                 speedVal.innerText = speedMBps.toFixed(2);
                 
                 window.graphData.push(speedMBps);
-                if(window.graphData.length > 20) window.graphData.shift(); // Max 20 history
+                if(window.graphData.length > 20) window.graphData.shift(); 
                 window.drawGraph();
-            } catch(e) {
-                // Abaikan jika lag
-            }
+            } catch(e) { }
         }
     };
     
     monitorSpeed();
 };
-// ==========================================
+
+// =========================================================================
 // 6. MESIN IMAGE UPSCALER (WEB API SERVER) + BEFORE/AFTER
-// ==========================================
+// =========================================================================
 window.openUpscaleTool = function() {
     document.getElementById('upscale-tool-view').classList.add('active');
-    window.setupSlider(); // Inisiasi interaksi slider panah
+    window.setupSlider(); 
 };
 
 window.closeUpscaleTool = function() {
@@ -572,48 +573,24 @@ window.processUpscale = async function() {
     btnStart.disabled = true;
     
     let file = fileInput.files[0];
-    
-    // Tampilkan foto asli yang belum diproses di sisi KIRI (Before)
     document.getElementById('img-before').src = URL.createObjectURL(file);
     
     try {
         window.showToast("Memproses di Server Web... HP Anda tetap dingin!", "info");
         
-        // ---------------------------------------------------------
-        // MESIN FETCH API (PENGIRIMAN DATA KE WEB SERVER)
-        // ---------------------------------------------------------
         let formData = new FormData();
-        formData.append('image', file); // Mengemas file foto untuk diunggah
-        // formData.append('scale', document.getElementById('upscale-factor').value); 
+        formData.append('image', file); 
         
-        /* 
-           KODE HTTP REQUEST KE API WEB PIHAK KETIGA
-           (Ganti URL di bawah dengan alamat API Web/Server Anda)
-           Saat ini saya jadikan komentar agar APK tidak error menolak koneksi.
-        */
-        // let response = await fetch('https://api.web-upscaler-anda.com/v1/process', {
-        //     method: 'POST',
-        //     body: formData,
-        //     headers: { 'Authorization': 'Bearer API_KEY_ANDA' }
-        // });
-        // let data = await response.json();
-        // let imageUrlDariWeb = data.output_image_url; 
-
-        // --- SIMULASI PENERIMAAN HASIL (Hapus baris ini jika Web API asli sudah dipasang) ---
         let imageUrlDariWeb = URL.createObjectURL(file); 
-        // ----------------------------------------------------------------------------------
         
-        // TAMPILKAN HASIL DARI WEB KE DALAM APK (Slider)
         let resultImg = document.getElementById('img-after');
         resultImg.onload = function() {
             document.getElementById('upscale-setup-container').style.display = 'none';
             document.getElementById('upscale-result-container').style.display = 'block';
             
-            // Kembalikan posisi slider pembatas ke tengah persis
             document.getElementById('img-before').style.clipPath = `polygon(0 0, 50% 0, 50% 100%, 0 100%)`;
             document.getElementById('slider-handle').style.left = `50%`;
             
-            // Logika Tombol Download (Mendownload gambar dari URL hasil Web)
             document.getElementById('btn-dl-upscale').onclick = async function() {
                 window.showToast("Mendownload hasil dari Web...", "info");
                 try {
@@ -636,7 +613,6 @@ window.processUpscale = async function() {
             window.showToast("Upscale via Web Selesai!", "success");
         };
         
-        // Pasang link gambar hasil kiriman Web ke kotak KANAN (After)
         resultImg.src = imageUrlDariWeb;
 
     } catch (err) {
@@ -649,7 +625,7 @@ window.processUpscale = async function() {
 window.setupSlider = function() {
     let container = document.getElementById('compare-container');
     if(!container) return;
-    if(container.dataset.sliderInit) return; // Mencegah event sentuhan bertumpuk/dobel
+    if(container.dataset.sliderInit) return; 
     container.dataset.sliderInit = "true";
     
     let beforeImg = document.getElementById('img-before');
@@ -661,7 +637,7 @@ window.setupSlider = function() {
         let rect = container.getBoundingClientRect();
         let clientX = e.touches ? e.touches[0].clientX : e.clientX;
         let x = clientX - rect.left;
-        let pct = Math.max(0, Math.min(100, (x / rect.width) * 100)); // Batasi 0% - 100%
+        let pct = Math.max(0, Math.min(100, (x / rect.width) * 100)); 
         
         beforeImg.style.clipPath = `polygon(0 0, ${pct}% 0, ${pct}% 100%, 0 100%)`;
         handle.style.left = `${pct}%`;
@@ -675,146 +651,63 @@ window.setupSlider = function() {
     document.addEventListener('touchmove', slide, {passive: true});
 };
 
-// Override Back button khusus untuk menutup panel Upscaler
-if (typeof window.oldHandleBackUpscale === 'undefined') {
-    window.oldHandleBackUpscale = window.handleBackButton;
+// ==========================================
+// 8. PENCEGAT TOMBOL BACK (TUTUP TOOLS & MATIKAN MEDIA)
+// ==========================================
+if (typeof window.oldHandleBackSocial === 'undefined') {
+    window.oldHandleBackSocial = window.handleBackButton;
     window.handleBackButton = function() {
-        let upPanel = document.getElementById('upscale-tool-view');
-        if(upPanel && upPanel.classList.contains('active')) {
-            window.closeUpscaleTool();
-            return "handled";
-        }
-        if(typeof window.oldHandleBackUpscale === 'function') {
-            return window.oldHandleBackUpscale();
-        }
-        return "exit";
-    };
-}
-// ==========================================
-// 7. MESIN ANIME WATCHER (TABS, SEARCH, HISTORY)
-// ==========================================
-window.openAnimeTool = function() {
-    document.getElementById('anime-tool-view').classList.add('active');
-    // Buka tab beranda secara default saat diklik
-    if(typeof window.switchAnimeTab === 'function') {
-        window.switchAnimeTab('home'); 
-    }
-};
-
-window.closeAnimeTool = function() {
-    document.getElementById('anime-tool-view').classList.remove('active');
-};
-
-window.switchAnimeTab = function(tabName) {
-    ['home','search','history'].forEach(x=>{ 
-        let tab = document.getElementById('anime-tab-'+x); if(tab) tab.style.display='none'; 
-        let btn = document.getElementById('tab-btn-anime-'+x);
-        if(btn) { btn.classList.remove('active'); btn.style.color='#888'; }
-    });
-    let activeTab = document.getElementById('anime-tab-'+tabName); if(activeTab) activeTab.style.display='block';
-    let activeNav = document.getElementById('tab-btn-anime-'+tabName); 
-    if(activeNav) { activeNav.classList.add('active'); activeNav.style.color='#ff9900'; }
-    if(tabName === 'history' && typeof window.renderAnimeHistory === 'function') window.renderAnimeHistory();
-};
-
-window.searchAnimeApi = function() {
-    let query = document.getElementById('anime-search-input').value.trim();
-    let resDiv = document.getElementById('anime-search-results');
-    if(!query) return;
-    
-    resDiv.innerHTML = '<div style="text-align:center;padding:20px;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#ff9900;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#888;font-size:12px;">Mencari anime...</p></div>';
-    
-    fetch('https://api.jikan.moe/v4/anime?q=' + encodeURIComponent(query) + '&sfw=true')
-    .then(res => res.json())
-    .then(data => {
-        resDiv.innerHTML = '';
-        if(data.data && data.data.length > 0) {
-            let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
-            data.data.forEach(anime => {
-                let title = anime.title.replace(/'/g, "\\'");
-                let img = anime.images.jpg.image_url;
-                let id = anime.mal_id;
-                let type = anime.type || 'TV';
-                let score = anime.score || 'N/A';
-                html += `
-                <div class="card slide-up" onclick="if(typeof window.fetchAnimeDetail === 'function') { window.fetchAnimeDetail('${id}', '${title}'); } else { window.showToast('Sedang memuat sistem player...', 'info'); }" style="border-color:#ff9900; background:#000a14;">
-                    <img src="${img}" class="card-img" style="border:1px solid #ff9900;">
-                    <div class="card-info">
-                        <h3 style="color:#fff;">${anime.title}</h3>
-                        <p style="color:#ff9900;">${type} • Score: ${score}</p>
-                    </div>
-                    <div style="color:#ff9900; font-size:18px;">❯</div>
-                </div>`;
-            });
-            html += '</div>';
-            resDiv.innerHTML = html;
-        } else {
-            resDiv.innerHTML = '<p style="color:#666;text-align:center;font-size:12px;">Anime tidak ditemukan.</p>';
-        }
-    }).catch(err => {
-        resDiv.innerHTML = '<p style="color:var(--primary);text-align:center;font-size:12px;">Gagal memuat pencarian. Coba lagi.</p>';
-    });
-};
-
-window.renderAnimeHistory = function() {
-    let histDiv = document.getElementById('anime-history-results');
-    let history = JSON.parse(localStorage.getItem('ytpro_anime_history')) || [];
-    
-    if(history.length === 0) {
-        histDiv.innerHTML = '<p style="color:#666;text-align:center;font-size:12px;margin-top:20px;">Belum ada riwayat tontonan Anime.</p>';
-        return;
-    }
-    
-    let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
-    history.reverse().forEach((anime, idx) => {
-        let titleStr = anime.title.replace(/'/g, "\\'");
-        html += `
-        <div class="card slide-up delay-${idx%3+1}" onclick="if(typeof window.fetchAnimeDetail === 'function') { window.fetchAnimeDetail('${anime.id}', '${titleStr}'); }" style="border-color:#ff9900; background:#000a14;">
-            <img src="${anime.img}" class="card-img" style="border:1px solid #ff9900;">
-            <div class="card-info">
-                <h3 style="color:#fff;">${anime.title}</h3>
-                <p style="color:#aaa;">Terakhir dilihat</p>
-            </div>
-            <button class="remove-btn" onclick="event.stopPropagation(); window.removeAnimeHistory('${anime.id}')" style="color:var(--primary); padding:10px; font-size:16px;">✕</button>
-        </div>`;
-    });
-    html += '</div>';
-    html += '<button class="btn-no" style="width:100%; border-color:var(--primary); color:var(--primary); padding:12px; margin-top:20px; border-radius:12px; font-size:13px; font-weight:bold;" onclick="window.clearAnimeHistory()">HAPUS SEMUA RIWAYAT</button>';
-    histDiv.innerHTML = html;
-};
-
-window.removeAnimeHistory = function(id) {
-    let history = JSON.parse(localStorage.getItem('ytpro_anime_history')) || [];
-    history = history.filter(h => h.id !== id);
-    localStorage.setItem('ytpro_anime_history', JSON.stringify(history));
-    window.renderAnimeHistory();
-};
-
-window.clearAnimeHistory = function() {
-    if(typeof window.showConfirm === 'function') {
-        window.showConfirm("Hapus semua riwayat anime?", function(){
-            localStorage.removeItem('ytpro_anime_history');
-            window.renderAnimeHistory();
-            window.showToast("Riwayat Anime dibersihkan", "success");
+        let handled = false;
+        let tools = ['tiktok-tool-view', 'ig-tool-view', 'upscale-tool-view', 'network-tool-view', 'anime-tool-view'];
+        
+        tools.forEach(id => {
+            let panel = document.getElementById(id);
+            if(panel && panel.classList.contains('active')) {
+                if(id === 'tiktok-tool-view') window.closeTikTokTool();
+                else if(id === 'ig-tool-view') window.closeIgTool();
+                else if(id === 'upscale-tool-view') window.closeUpscaleTool();
+                else if(id === 'network-tool-view') window.closeNetworkTool();
+                else if(id === 'anime-tool-view') window.closeAnimeTool();
+                handled = true;
+            }
         });
-    } else {
-        localStorage.removeItem('ytpro_anime_history');
-        window.renderAnimeHistory();
-    }
-};
-
-// Pencegat tombol back HP untuk panel Anime
-if (typeof window.oldHandleBackAnime === 'undefined') {
-    window.oldHandleBackAnime = window.handleBackButton;
-    window.handleBackButton = function() {
-        let animePanel = document.getElementById('anime-tool-view');
-        if(animePanel && animePanel.classList.contains('active')) {
-            window.closeAnimeTool();
-            return "handled";
-        }
-        if(typeof window.oldHandleBackAnime === 'function') {
-            return window.oldHandleBackAnime();
+        
+        if(handled) return "handled";
+        if(typeof window.oldHandleBackSocial === 'function') {
+            return window.oldHandleBackSocial();
         }
         return "exit";
     };
 }
+
+// ==========================================
+// 9. MESIN OTOMATIS PLAY/PAUSE VIDEO BANNER (PENGHEMAT RAM)
+// ==========================================
+setInterval(function() {
+    let bannerVid = document.getElementById('tools-banner-video');
+    if(!bannerVid) return;
+    
+    let tabTools = document.getElementById('tab-tools');
+    let isTabToolsActive = tabTools && tabTools.classList.contains('active');
+    
+    // Cek spesifik panel tool yang terbuka (menutupi dashboard)
+    let activeTools = ['tiktok-tool-view', 'ig-tool-view', 'network-tool-view', 'upscale-tool-view', 'anime-tool-view', 'app-info-view', 'dev-view', 'terminal-view', 'history-update-view', 'settings-modal'];
+    
+    let isAnyToolPanelOpen = activeTools.some(id => {
+        let el = document.getElementById(id);
+        return el && (el.classList.contains('active') || el.classList.contains('show'));
+    });
+    
+    // Video HANYA BERPUTAR jika pengguna ada di Tab Tools (Dashboard) DAN tidak sedang buka sub-tool
+    if (isTabToolsActive && !isAnyToolPanelOpen) {
+        if(bannerVid.paused) {
+            let p = bannerVid.play();
+            if(p !== undefined) p.catch(e => {}); 
+        }
+    } else {
+        // Jika pindah tab, atau buka tool TikTok dll, matikan video banner!
+        if(!bannerVid.paused) {
+            bannerVid.pause();
+        }
+    }
+}, 500);
