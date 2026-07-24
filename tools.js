@@ -803,7 +803,7 @@ setInterval(function() {
 }, 500);
 
 // ==========================================
-// 10. MESIN PENAMBAL PROGRESS BAR (SEBELUMNYA)
+// 10. MESIN PENAMBAL PROGRESS BAR
 // ==========================================
 setInterval(function() {
     let seekBar = document.getElementById('seek-bar');
@@ -826,7 +826,7 @@ setInterval(function() {
 }, 100);
 
 // ==========================================
-// 11. MESIN ANTI-STUCK (PENGOBAT LOADING LAMA & GAGAL EKSTRAK)
+// 11. MESIN ANTI-STUCK (PENGOBAT LOADING LAMA)
 // ==========================================
 window.stuckMonitorCount = 0;
 window.lastStuckText = "";
@@ -838,7 +838,6 @@ setInterval(function() {
     if(!titleEl || !audioEl) return;
     
     let txt = titleEl.innerText || "";
-    // Deteksi jika UI sedang dalam fase loading yang rawan stuck
     let isLoading = txt.includes("Mengekstrak stream") || 
                     txt.includes("Mencari rekomendasi") || 
                     txt.includes("Memuat") ||
@@ -852,19 +851,14 @@ setInterval(function() {
             window.stuckMonitorCount = 0;
         }
         
-        // Jika ngestuck di tulisan yang sama lebih dari 12 detik
         if(window.stuckMonitorCount >= 12) {
             window.stuckMonitorCount = 0;
             if(typeof window.showToast === 'function') {
                 window.showToast("Koneksi server lambat (Timeout). Memaksa lewati lagu...", "error");
             }
-            
-            // Hentikan paksa audio yang mungkin nyangkut
             audioEl.pause();
             audioEl.removeAttribute('src');
             audioEl.load();
-            
-            // Paksa putar lagu selanjutnya di antrean
             if(typeof window.playNextInQueue === 'function') {
                 setTimeout(() => window.playNextInQueue(), 500);
             }
@@ -874,10 +868,9 @@ setInterval(function() {
         window.lastStuckText = "";
     }
     
-    // Deteksi End-of-Track stuck (Lagu udah habis waktunya tapi gak mau ganti)
     if(audioEl.duration && audioEl.currentTime >= (audioEl.duration - 0.5) && audioEl.duration > 0 && !isLoading) {
         window.stuckMonitorCount++;
-        if(window.stuckMonitorCount >= 5) { // Nyangkut 5 detik di ujung lagu
+        if(window.stuckMonitorCount >= 5) { 
             window.stuckMonitorCount = 0;
             if(typeof window.playNextInQueue === 'function') window.playNextInQueue();
         }
@@ -885,18 +878,13 @@ setInterval(function() {
 }, 1000);
 
 // =========================================================================
-// 12. MESIN UPDATE PROFILE & UPLOAD AVATAR (ANTI-FORCE LOGOUT)
+// 12. MESIN UPDATE PROFILE & UPLOAD AVATAR (FIX AUTENTIKASI CASING)
 // =========================================================================
 window.selectedAvatarBase64 = null;
 
-// Eksekusi set-up avatar saat aplikasi pertama dibuka
 setTimeout(() => {
-    let sidebarName = document.getElementById('sidebar-username-txt');
-    let uname = sidebarName ? sidebarName.innerText.trim() : "Guest";
-    
-    if(uname.toUpperCase() === "GUEST") {
-        uname = localStorage.getItem('username') || localStorage.getItem('ytpro_username') || localStorage.getItem('user') || "Guest";
-    }
+    // Ambil langsung dari memori lokal agar huruf besar/kecilnya akurat 100%
+    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
     
     let avatarPath = localStorage.getItem('ytpro_avatar') || "";
     let finalAvatarUrl = `https://ui-avatars.com/api/?name=${uname}&background=002244&color=00e5ff`;
@@ -909,15 +897,9 @@ setTimeout(() => {
 }, 3000);
 
 window.openProfileView = function() {
-    let sidebarName = document.getElementById('sidebar-username-txt');
-    let uname = sidebarName ? sidebarName.innerText.trim() : "Guest";
-    
-    if(uname.toUpperCase() === "GUEST") {
-        uname = localStorage.getItem('username') || localStorage.getItem('ytpro_username') || localStorage.getItem('user') || "Guest";
-    }
+    // Ambil langsung dari memori lokal agar huruf besar/kecilnya akurat 100%
+    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
 
-    // BLOKIRAN LOGIN DIHAPUS. LANGSUNG BUKA PANEL PROFILE!
-    
     document.getElementById('profile-username-txt').innerText = uname;
     document.getElementById('profile-reg-txt').innerText = "Status: Akun Aktif";
     document.getElementById('profile-login-txt').innerText = "Terkoneksi ke Server Utama";
@@ -936,14 +918,14 @@ window.openProfileView = function() {
 window.handleAvatarSelect = function(event) {
     let file = event.target.files[0];
     if(file) {
-        if(file.size > 3000000) { // Limit 3MB
+        if(file.size > 3000000) { 
             window.showToast("Ukuran foto maksimal 3MB!", "error");
             return;
         }
         let reader = new FileReader();
         reader.onload = function(e) {
-            window.selectedAvatarBase64 = e.target.result; // Menyimpan data Base64
-            document.getElementById('profile-avatar-img').src = window.selectedAvatarBase64; // Preview Instan
+            window.selectedAvatarBase64 = e.target.result; 
+            document.getElementById('profile-avatar-img').src = window.selectedAvatarBase64; 
             window.showToast("Foto siap! Jangan lupa ketik password lama untuk menyimpan.", "info");
         };
         reader.readAsDataURL(file);
@@ -951,11 +933,8 @@ window.handleAvatarSelect = function(event) {
 };
 
 window.updateProfileData = function() {
-    let sidebarName = document.getElementById('sidebar-username-txt');
-    let uname = sidebarName ? sidebarName.innerText.trim() : "Guest";
-    if(uname.toUpperCase() === "GUEST") {
-        uname = localStorage.getItem('username') || localStorage.getItem('ytpro_username') || localStorage.getItem('user') || "Guest";
-    }
+    // Ambil langsung dari memori lokal agar huruf besar/kecilnya akurat 100%
+    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
     
     let oldPass = document.getElementById('profile-old-pass').value.trim();
     let newPass = document.getElementById('profile-new-pass').value.trim();
