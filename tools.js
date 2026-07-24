@@ -884,8 +884,8 @@ setInterval(function() {
     }
 }, 1000);
 
-// // =========================================================================
-// 12. MESIN UPDATE PROFILE & UPLOAD AVATAR
+// =========================================================================
+// 12. MESIN UPDATE PROFILE & UPLOAD AVATAR (ANTI-FORCE LOGOUT)
 // =========================================================================
 window.selectedAvatarBase64 = null;
 
@@ -894,10 +894,8 @@ setTimeout(() => {
     let sidebarName = document.getElementById('sidebar-username-txt');
     let uname = sidebarName ? sidebarName.innerText.trim() : "Guest";
     
-    // Cek di penyimpanan lokal jika di sidebar masih Guest
     if(uname.toUpperCase() === "GUEST") {
-        let localName = localStorage.getItem('username') || localStorage.getItem('ytpro_username');
-        if(localName) uname = localName;
+        uname = localStorage.getItem('username') || localStorage.getItem('ytpro_username') || localStorage.getItem('user') || "Guest";
     }
     
     let avatarPath = localStorage.getItem('ytpro_avatar') || "";
@@ -911,22 +909,14 @@ setTimeout(() => {
 }, 3000);
 
 window.openProfileView = function() {
-    // Cari nama dengan pintar
     let sidebarName = document.getElementById('sidebar-username-txt');
     let uname = sidebarName ? sidebarName.innerText.trim() : "Guest";
     
     if(uname.toUpperCase() === "GUEST") {
-        let localName = localStorage.getItem('username') || localStorage.getItem('ytpro_username');
-        if(localName) uname = localName;
+        uname = localStorage.getItem('username') || localStorage.getItem('ytpro_username') || localStorage.getItem('user') || "Guest";
     }
 
-    // Jika setelah dicari tetap Guest/Kosong, paksa login!
-    if(!uname || uname.toUpperCase() === "GUEST") {
-        window.showToast("Kamu harus Login pakai akun dulu sayang!", "error");
-        let authModal = document.getElementById('auth-modal');
-        if(authModal) authModal.classList.add('show');
-        return;
-    }
+    // BLOKIRAN LOGIN DIHAPUS. LANGSUNG BUKA PANEL PROFILE!
     
     document.getElementById('profile-username-txt').innerText = uname;
     document.getElementById('profile-reg-txt').innerText = "Status: Akun Aktif";
@@ -964,7 +954,7 @@ window.updateProfileData = function() {
     let sidebarName = document.getElementById('sidebar-username-txt');
     let uname = sidebarName ? sidebarName.innerText.trim() : "Guest";
     if(uname.toUpperCase() === "GUEST") {
-        uname = localStorage.getItem('username') || localStorage.getItem('ytpro_username');
+        uname = localStorage.getItem('username') || localStorage.getItem('ytpro_username') || localStorage.getItem('user') || "Guest";
     }
     
     let oldPass = document.getElementById('profile-old-pass').value.trim();
@@ -978,7 +968,9 @@ window.updateProfileData = function() {
     let btn = document.getElementById('btn-save-profile');
     btn.innerText = "MENYIMPAN..."; btn.disabled = true;
     
-    fetch(PTERODACTYL_API_URL + '/api/update_profile', {
+    let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
+    
+    fetch(apiUrl + '/api/update_profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -994,16 +986,14 @@ window.updateProfileData = function() {
         if(res.status === 'success') {
             window.showToast("Profile & Avatar Berhasil Diperbarui!", "success");
             
-            // Simpan password baru ke lokal jika user tadi menggantinya
             if(newPass) {
                 localStorage.setItem('ytpro_password', newPass);
-                localStorage.setItem('password', newPass); // Backup key
+                localStorage.setItem('password', newPass); 
             }
             
-            // Perbarui URL Avatar dari server ke sistem lokal (Header Navbar juga)
             if(res.avatar) {
                 localStorage.setItem('ytpro_avatar', res.avatar);
-                document.getElementById('header-avatar-img').src = PTERODACTYL_API_URL + res.avatar;
+                document.getElementById('header-avatar-img').src = apiUrl + res.avatar;
             }
             
             document.getElementById('profile-view').classList.remove('active');
@@ -1016,7 +1006,6 @@ window.updateProfileData = function() {
     });
 };
 
-// Tambahkan "profile-view" ke dalam sistem PENCEGAT TOMBOL BACK (agar ketutup pas di back)
 if (typeof window.oldHandleBackSocialProfile === 'undefined') {
     window.oldHandleBackSocialProfile = window.handleBackButton;
     window.handleBackButton = function() {
