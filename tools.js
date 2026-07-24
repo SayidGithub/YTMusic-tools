@@ -884,18 +884,25 @@ setInterval(function() {
     }
 }, 1000);
 
-// =========================================================================
+// // =========================================================================
 // 12. MESIN UPDATE PROFILE & UPLOAD AVATAR
 // =========================================================================
 window.selectedAvatarBase64 = null;
 
 // Eksekusi set-up avatar saat aplikasi pertama dibuka
 setTimeout(() => {
-    let uname = localStorage.getItem('ytpro_username') || "Guest";
+    let sidebarName = document.getElementById('sidebar-username-txt');
+    let uname = sidebarName ? sidebarName.innerText.trim() : "Guest";
+    
+    // Cek di penyimpanan lokal jika di sidebar masih Guest
+    if(uname.toUpperCase() === "GUEST") {
+        let localName = localStorage.getItem('username') || localStorage.getItem('ytpro_username');
+        if(localName) uname = localName;
+    }
+    
     let avatarPath = localStorage.getItem('ytpro_avatar') || "";
     let finalAvatarUrl = `https://ui-avatars.com/api/?name=${uname}&background=002244&color=00e5ff`;
     
-    // Asumsi PTERODACTYL_API_URL sudah didefinisikan secara global dari awal di app Anda
     if (avatarPath && typeof PTERODACTYL_API_URL !== 'undefined') {
         finalAvatarUrl = PTERODACTYL_API_URL + avatarPath;
     }
@@ -904,22 +911,32 @@ setTimeout(() => {
 }, 3000);
 
 window.openProfileView = function() {
-    let uname = localStorage.getItem('ytpro_username');
-    if(!uname) {
-        window.showToast("Anda harus Login terlebih dahulu!", "error");
-        document.getElementById('auth-modal').classList.add('show');
+    // Cari nama dengan pintar
+    let sidebarName = document.getElementById('sidebar-username-txt');
+    let uname = sidebarName ? sidebarName.innerText.trim() : "Guest";
+    
+    if(uname.toUpperCase() === "GUEST") {
+        let localName = localStorage.getItem('username') || localStorage.getItem('ytpro_username');
+        if(localName) uname = localName;
+    }
+
+    // Jika setelah dicari tetap Guest/Kosong, paksa login!
+    if(!uname || uname.toUpperCase() === "GUEST") {
+        window.showToast("Kamu harus Login pakai akun dulu sayang!", "error");
+        let authModal = document.getElementById('auth-modal');
+        if(authModal) authModal.classList.add('show');
         return;
     }
     
     document.getElementById('profile-username-txt').innerText = uname;
-    document.getElementById('profile-reg-txt').innerText = "Terdaftar: " + (localStorage.getItem('ytpro_reg_time') || "Data Lama");
-    document.getElementById('profile-login-txt').innerText = "Login Terakhir: " + (localStorage.getItem('ytpro_log_time') || "Baru saja");
+    document.getElementById('profile-reg-txt').innerText = "Status: Akun Aktif";
+    document.getElementById('profile-login-txt').innerText = "Terkoneksi ke Server Utama";
     
     let avatarPath = localStorage.getItem('ytpro_avatar') || "";
     let finalUrl = avatarPath && typeof PTERODACTYL_API_URL !== 'undefined' ? (PTERODACTYL_API_URL + avatarPath) : `https://ui-avatars.com/api/?name=${uname}&background=002244&color=00e5ff`;
     
     document.getElementById('profile-avatar-img').src = finalUrl;
-    window.selectedAvatarBase64 = null; // Reset seleksi
+    window.selectedAvatarBase64 = null; 
     document.getElementById('profile-old-pass').value = '';
     document.getElementById('profile-new-pass').value = '';
     
@@ -944,7 +961,12 @@ window.handleAvatarSelect = function(event) {
 };
 
 window.updateProfileData = function() {
-    let uname = localStorage.getItem('ytpro_username');
+    let sidebarName = document.getElementById('sidebar-username-txt');
+    let uname = sidebarName ? sidebarName.innerText.trim() : "Guest";
+    if(uname.toUpperCase() === "GUEST") {
+        uname = localStorage.getItem('username') || localStorage.getItem('ytpro_username');
+    }
+    
     let oldPass = document.getElementById('profile-old-pass').value.trim();
     let newPass = document.getElementById('profile-new-pass').value.trim();
     
@@ -973,7 +995,10 @@ window.updateProfileData = function() {
             window.showToast("Profile & Avatar Berhasil Diperbarui!", "success");
             
             // Simpan password baru ke lokal jika user tadi menggantinya
-            if(newPass) localStorage.setItem('ytpro_password', newPass);
+            if(newPass) {
+                localStorage.setItem('ytpro_password', newPass);
+                localStorage.setItem('password', newPass); // Backup key
+            }
             
             // Perbarui URL Avatar dari server ke sistem lokal (Header Navbar juga)
             if(res.avatar) {
