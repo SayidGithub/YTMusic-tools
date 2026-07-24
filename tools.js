@@ -648,7 +648,7 @@ window.setupSlider = function() {
 };
 
 // =========================================================================
-// 7. IQC GENERATOR (FAKE CHAT iOS)
+// 7. IQC GENERATOR (FAKE CHAT iOS) - POSISI DIPERBAIKI
 // =========================================================================
 window.openIqcTool = function() {
     document.getElementById('iqc-tool-view').classList.add('active');
@@ -673,44 +673,37 @@ window.generateIQC = function() {
     let canvas = document.getElementById('iqc-canvas');
     let ctx = canvas.getContext('2d');
     
-    // Set ukuran canvas sama persis dengan ukuran gambar asli
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
-    
-    // 1. Gambar Template Mentahan
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     
-    // Asumsi ukuran font proporsional dengan lebar gambar (Responsif)
-    let baseFontSize = canvas.width * 0.033; // Sekitar 35px untuk resolusi 1080
+    let baseFontSize = canvas.width * 0.035; 
     
-    // 2. Tulis Provider (Pojok Kiri Atas, Sebelah Bar Sinyal)
-    ctx.font = `bold ${baseFontSize * 0.9}px Arial, sans-serif`;
+    // KUNCI PERBAIKAN: Gunakan anchor 'top' agar posisi teks mudah diprediksi dari atas ke bawah
+    ctx.textBaseline = "top"; 
+    
+    // 1. Tulis Provider
+    ctx.font = `bold ${baseFontSize * 0.9}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
     ctx.fillStyle = "white";
     ctx.textAlign = "left";
-    // Asumsi sinyal ada di x = 5%, teks provider di x = 12%
-    ctx.fillText(provider, canvas.width * 0.12, canvas.height * 0.038);
+    // Posisi X di 16% (tepat sebelah ikon sinyal), Posisi Y di 1.2% dari atas
+    ctx.fillText(provider, canvas.width * 0.16, canvas.height * 0.012);
     
-    // 3. Tulis Jam Atas (Tengah Status Bar)
-    ctx.font = `bold ${baseFontSize * 0.9}px Arial, sans-serif`;
+    // 2. Tulis Jam Atas
     ctx.textAlign = "center";
-    ctx.fillText(jamAtas, canvas.width / 2, canvas.height * 0.038);
+    ctx.fillText(jamAtas, canvas.width / 2, canvas.height * 0.012);
     
-    // 4. Tulis Jam Pesan (Pojok Kanan Bawah dalam Bubble Grey)
-    // Menempel di sudut bubble
-    ctx.font = `${baseFontSize * 0.65}px Arial, sans-serif`;
-    ctx.fillStyle = "#a3a3a3"; // Abu-abu
-    ctx.textAlign = "right";
-    ctx.fillText(jamPesan, canvas.width * 0.74, canvas.height * 0.437);
-    
-    // 5. Tulis Pesan Quotes (Di dalam Bubble) dengan Auto-Wrap (Turun Baris Otomatis)
-    ctx.font = `${baseFontSize * 1.15}px Arial, sans-serif`;
+    // 3. Tulis Pesan Quotes (Di dalam Bubble)
+    ctx.font = `${baseFontSize * 1.15}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
     ctx.fillStyle = "white";
     ctx.textAlign = "left";
     
-    let maxWidth = canvas.width * 0.66; // Maksimal batas kanan bubble
-    let xPesan = canvas.width * 0.055;  // Margin kiri bubble
-    let yPesan = canvas.height * 0.395; // Posisi Y awal pesan
-    let lineHeight = baseFontSize * 1.5;
+    let maxWidth = canvas.width * 0.66; 
+    // Posisi X Pesan mulai dari 5.5% lebar layar (Margin kiri dalam bubble)
+    let xPesan = canvas.width * 0.055;  
+    // Posisi Y Pesan mulai dari 36.5% tinggi layar (Posisi atas di dalam bubble)
+    let yPesan = canvas.height * 0.365; 
+    let lineHeight = baseFontSize * 1.4;
     
     let words = pesan.split(' ');
     let line = '';
@@ -720,7 +713,6 @@ window.generateIQC = function() {
         let testLine = line + words[n] + ' ';
         let metrics = ctx.measureText(testLine);
         let testWidth = metrics.width;
-        // Jika melebihi lebar maksimum bubble, paksa turun baris
         if (testWidth > maxWidth && n > 0) {
             lines.push(line);
             line = words[n] + ' ';
@@ -730,12 +722,19 @@ window.generateIQC = function() {
     }
     lines.push(line);
     
-    // Eksekusi print per baris
     for(let k = 0; k < lines.length; k++) {
         ctx.fillText(lines[k], xPesan, yPesan + (k * lineHeight));
     }
+
+    // 4. Tulis Jam Pesan (Pojok Kanan Bawah Bubble)
+    // Ubah anchor ke 'bottom' khusus untuk jam pesan agar menempel rapi di bawah
+    ctx.textBaseline = "bottom"; 
+    ctx.font = `${baseFontSize * 0.65}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+    ctx.fillStyle = "#a3a3a3"; // Abu-abu
+    ctx.textAlign = "right";
+    // Posisi X di 72.5% (mentok kanan dalam bubble), Posisi Y di 44.5% (mentok bawah bubble)
+    ctx.fillText(jamPesan, canvas.width * 0.725, canvas.height * 0.445);
     
-    // Tampilkan hasil dan tombol download
     document.getElementById('iqc-result-container').style.display = 'block';
     window.showToast("Fake Chat berhasil diracik!", "success");
 };
@@ -744,7 +743,6 @@ window.downloadIQC = function() {
     let canvas = document.getElementById('iqc-canvas');
     let dataUrl = canvas.toDataURL("image/jpeg", 1.0);
     
-    // Menggunakan trik anchor click karena base64 file dari canvas
     let a = document.createElement('a');
     a.href = dataUrl;
     a.download = "IQC_Generated_" + Date.now() + ".jpg";
@@ -754,7 +752,6 @@ window.downloadIQC = function() {
     
     window.showToast("Mendownload hasil ke Galeri...", "info");
 };
-
 
 // ==========================================
 // 8. PENCEGAT TOMBOL BACK (TUTUP TOOLS & MATIKAN MEDIA)
