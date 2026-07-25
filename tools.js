@@ -1034,3 +1034,134 @@ if (typeof window.oldHandleBackSocialProfile === 'undefined') {
         return "exit";
     };
 }
+
+// =========================================================================
+// 13. ADMIN PANEL SYSTEM & DASHBOARD ROLE 
+// =========================================================================
+
+// Penyelarasan Role & Status setiap kali halaman ter-load
+setTimeout(() => {
+    let savedRole = localStorage.getItem('ytpro_role') || "Member";
+    let roleEl = document.getElementById('dash-role');
+    if(roleEl) roleEl.innerText = savedRole;
+    
+    let adminBtn = document.getElementById('btn-sidebar-admin');
+    if(adminBtn) {
+        if(savedRole === "Admin") adminBtn.style.display = 'flex';
+        else adminBtn.style.display = 'none';
+    }
+}, 3000);
+
+// Mencegat respon auth API dari index.html untuk menyimpan Role
+let originalFetch = window.fetch;
+window.fetch = async function() {
+    let response = await originalFetch.apply(this, arguments);
+    let clone = response.clone();
+    
+    // Jika itu adalah request ke /api/auth (Login/Register)
+    if(arguments[0] && arguments[0].includes('/api/auth')) {
+        clone.json().then(data => {
+            if(data.status === 'success' && data.role) {
+                localStorage.setItem('ytpro_role', data.role);
+                let roleEl = document.getElementById('dash-role');
+                if(roleEl) roleEl.innerText = data.role;
+                
+                let adminBtn = document.getElementById('btn-sidebar-admin');
+                if(adminBtn) {
+                    if(data.role === "Admin") adminBtn.style.display = 'flex';
+                    else adminBtn.style.display = 'none';
+                }
+            }
+        }).catch(e => {});
+    }
+    return response;
+};
+
+window.openAdminPanel = function() {
+    let uname = localStorage.getItem('username') || localStorage.getItem('ytpro_username');
+    let upass = localStorage.getItem('password') || localStorage.getItem('ytpro_password');
+    let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
+
+    document.getElementById('admin-panel-view').classList.add('active');
+    document.getElementById('admin-users-list').innerHTML = '<div style="text-align:center; padding:30px 0;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#00e5ff;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#00e5ff;font-size:12px;margin-top:10px;">Menembus Database Server...</p></div>';
+
+    fetch(apiUrl + '/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: uname, password: upass })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if(res.status === 'success' && res.data) {
+            let users = res.data;
+            let uList = Object.keys(users);
+            document.getElementById('admin-total-users').innerText = uList.length;
+            
+            let html = "";
+            let now = new Date().getTime(); // Waktu saat ini (sistem HP)
+            
+            uList.forEach(user => {
+                let d = users[user];
+                let avatar = d.avatar ? (apiUrl + d.avatar) : `https://ui-avatars.com/api/?name=${user}&background=002244&color=00e5ff`;
+                let playlistsCount = d.playlists ? Object.keys(d.playlists).length : 0;
+                let historyCount = d.history ? d.history.length : 0;
+                let roleColor = d.role === "Admin" ? "#ff003c" : "#00e5ff";
+                
+                // Logika Online/Offline sederhana berdasarkan waktu last_login
+                let statusDot = '<span style="color:#ff003c;">● Offline</span>';
+                if(d.last_login) {
+                    // Karena Pterodactyl pakai format '%d %b %Y - %H:%M WIB', kita buat pengecekan perkiraan kasar
+                    // Jika last_login memiliki tanggal yang sama dengan hari ini, kita anggap Online/Aktif
+                    let todayStr = new Date().toLocaleString('en-US', { day: '2-digit', month: 'short' }); 
+                    if(d.last_login.includes(todayStr) || d.last_login.includes("Baru")) {
+                        statusDot = '<span style="color:#1db954;">● Online (Hari Ini)</span>';
+                    }
+                }
+                
+                html += `
+                <div style="background:#050505; border:1px solid #222; border-radius:10px; padding:15px; text-align:left; position:relative;">
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px; border-bottom:1px solid #111; padding-bottom:12px;">
+                        <img src="${avatar}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid ${roleColor};">
+                        <div>
+                            <h4 style="margin:0; color:#fff; font-size:14px; text-transform:uppercase;">${user} <span style="background:${roleColor}; color:#000; font-size:9px; padding:2px 6px; border-radius:4px; vertical-align:middle;">${d.role}</span></h4>
+                            <p style="margin:2px 0 0 0; font-size:10px; font-weight:bold;">${statusDot}</p>
+                        </div>
+                    </div>
+                    
+                    <div style="font-size:11px; color:#aaa; line-height:1.6;">
+                        <div style="display:flex; justify-content:space-between;"><span>Password:</span><b style="color:var(--accent); font-family:monospace;">${d.password}</b></div>
+                        <div style="display:flex; justify-content:space-between;"><span>IP Address:</span><b style="color:#fff; font-family:monospace;">${d.last_ip || 'Unknown'}</b></div>
+                        <div style="display:flex; justify-content:space-between;"><span>Versi APK:</span><b style="color:#fff;">${d.app_version || '-'}</b></div>
+                        <div style="display:flex; justify-content:space-between; margin-top:5px; padding-top:5px; border-top:1px dashed #222;"><span>Total Playlist:</span><b style="color:#ffaa00;">${playlistsCount} Folder</b></div>
+                        <div style="display:flex; justify-content:space-between;"><span>Total Histori:</span><b style="color:#1db954;">${historyCount} Lagu</b></div>
+                        <div style="display:flex; justify-content:space-between; margin-top:5px; padding-top:5px; border-top:1px dashed #222;"><span>Register:</span><b style="color:#fff; font-size:10px;">${d.register_time}</b></div>
+                        <div style="display:flex; justify-content:space-between;"><span>Login:</span><b style="color:#1db954; font-size:10px;">${d.last_login}</b></div>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('admin-users-list').innerHTML = html;
+        } else {
+            window.showToast(res.message || "Akses Ditolak!", "error");
+            document.getElementById('admin-panel-view').classList.remove('active');
+        }
+    }).catch(e => {
+        window.showToast("Gagal terhubung ke database", "error");
+        document.getElementById('admin-panel-view').classList.remove('active');
+    });
+};
+
+// Pencegat tombol back khusus admin panel
+if (typeof window.oldHandleBackSocialAdmin === 'undefined') {
+    window.oldHandleBackSocialAdmin = window.handleBackButton;
+    window.handleBackButton = function() {
+        let adminPanel = document.getElementById('admin-panel-view');
+        if(adminPanel && adminPanel.classList.contains('active')) {
+            adminPanel.classList.remove('active');
+            return "handled";
+        }
+        if(typeof window.oldHandleBackSocialAdmin === 'function') {
+            return window.oldHandleBackSocialAdmin();
+        }
+        return "exit";
+    };
+}
