@@ -15,16 +15,16 @@ window.processTikTokAJAX = function() {
     if(window.isOfflineMode) { window.showToast("Matikan Mode Offline untuk menggunakan Tools!", "error"); return; }
     let url = document.getElementById('tiktok-url-input-tool').value.trim();
     if(!url) { window.showToast("URL TikTok tidak boleh kosong!", "error"); return; }
-    
+
     let oldVid = document.getElementById('tiktok-video-preview'); if(oldVid) { oldVid.pause(); oldVid.removeAttribute('src'); oldVid.load(); }
     let oldAud = document.getElementById('tiktok-audio-preview'); if(oldAud) { oldAud.pause(); oldAud.removeAttribute('src'); oldAud.load(); }
-    
+
     document.getElementById('tiktok-tool-result').style.display = 'block';
     document.getElementById('tiktok-tool-status').style.display = 'block';
     document.getElementById('tiktok-tool-data').style.display = 'none';
     document.getElementById('tiktok-dl-progress').style.display = 'none';
     document.getElementById('tiktok-tool-status').innerHTML = '<svg class="spin-anim" viewBox="0 0 24 24" style="width:20px;height:20px;fill:var(--accent);vertical-align:middle;margin-right:5px;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg> Mengekstrak data tanpa watermark...';
-    
+
     let formData = new FormData(); formData.append('url', url);
     fetch('https://www.tikwm.com/api/', { method: 'POST', body: formData })
     .then(res => res.json())
@@ -35,7 +35,7 @@ window.processTikTokAJAX = function() {
             document.getElementById('tiktok-tool-data').style.display = 'flex';
             document.getElementById('tiktok-tool-title').innerText = data.data.title || 'Post TikTok';
             document.getElementById('tiktok-tool-author').innerText = data.data.author && data.data.author.unique_id ? '@' + data.data.author.unique_id : 'TikTok User';
-            
+
             if(data.data.images && data.data.images.length > 0) {
                 document.getElementById('tiktok-video-preview').style.display = 'none';
                 document.getElementById('tiktok-image-preview').style.display = 'flex';
@@ -107,16 +107,16 @@ window.processIgAJAX = function() {
     if(window.isOfflineMode) { window.showToast("Matikan Mode Offline untuk menggunakan Tools!", "error"); return; }
     let url = document.getElementById('ig-url-input-tool').value.trim();
     if(!url) { window.showToast("URL Instagram tidak boleh kosong!", "error"); return; }
-    
+
     let oldVid = document.getElementById('ig-video-preview'); if(oldVid) { oldVid.pause(); oldVid.removeAttribute('src'); oldVid.load(); }
     let oldAud = document.getElementById('ig-audio-preview'); if(oldAud) { oldAud.pause(); oldAud.removeAttribute('src'); oldAud.load(); }
-    
+
     document.getElementById('ig-tool-result').style.display = 'block';
     document.getElementById('ig-tool-status').style.display = 'block';
     document.getElementById('ig-tool-data').style.display = 'none';
     document.getElementById('ig-dl-progress').style.display = 'none';
     document.getElementById('ig-tool-status').innerHTML = '<svg class="spin-anim" viewBox="0 0 24 24" style="width:20px;height:20px;fill:#E1306C;vertical-align:middle;margin-right:5px;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg> Menembak endpoint lokal...';
-    
+
     let formData = new FormData(); formData.append('url', url);
     fetch('/import_ig', { method: 'POST', body: formData })
     .then(res => res.json())
@@ -129,16 +129,16 @@ window.processIgAJAX = function() {
                 document.getElementById('ig-tool-data').style.display = 'flex';
                 document.getElementById('ig-tool-title').innerText = "Postingan Instagram";
                 document.getElementById('ig-tool-author').innerText = "IG User";
-                
+
                 let firstUrl = mediaList[0];
                 let isPhoto = firstUrl.includes('.jpg') || firstUrl.includes('.webp') || firstUrl.includes('n.jpg') || firstUrl.includes('stp=dst-jpg');
-                
+
                 if(mediaList.length > 1 || isPhoto) {
                     document.getElementById('ig-video-preview').style.display = 'none';
                     document.getElementById('ig-image-preview').style.display = 'flex';
                     document.getElementById('ig-slide-indicator').style.display = 'block';
                     document.getElementById('ig-tool-dl-mp3').style.display = 'none'; 
-                    
+
                     let imgContainer = document.getElementById('ig-image-preview'); imgContainer.innerHTML = '';
                     mediaList.forEach((mUrl, idx) => {
                         let isVid = mUrl.includes('.mp4');
@@ -318,20 +318,20 @@ window.closeAnimePlayer=function(){ document.getElementById('anime-player-modal'
 window.downloadTTApiToDevice = function(targetUrl, ext, titlePrefix) {
     let fileTitle = titlePrefix + '_' + Date.now();
     let taskKey = 'api_' + Date.now() + Math.floor(Math.random()*1000);
-    
+
     let isIg = targetUrl.includes('instagram') || targetUrl.includes('ig') || targetUrl.includes('fbsbx') || targetUrl.includes('cdninstagram') || titlePrefix.includes('IG');
     let progContainer = document.getElementById(isIg ? 'ig-dl-progress' : 'tiktok-dl-progress');
     let progText = document.getElementById(isIg ? 'ig-dl-text' : 'tiktok-dl-text');
     let progSpeed = document.getElementById(isIg ? 'ig-dl-speed' : 'tiktok-dl-speed');
     let progBar = document.getElementById(isIg ? 'ig-dl-bar' : 'tiktok-dl-bar');
-    
+
     if(progContainer) progContainer.style.display = 'block';
     if(progText) progText.innerText = 'Mengirim perintah ke mesin unduhan...';
     if(progSpeed) progSpeed.innerText = '0%';
     if(progBar) progBar.style.width = '0%';
-    
+
     window.showToast(`Meminta aplikasi mengunduh ${ext.toUpperCase()}...`, "info");
-    
+
     let formData = new FormData();
     formData.append('download_url', targetUrl);
     formData.append('title', fileTitle);
@@ -380,7 +380,7 @@ window.downloadTTApiToDevice = function(targetUrl, ext, titlePrefix) {
         if(progText) progText.innerText = 'Mengunduh via browser internal...';
         if(progSpeed) progSpeed.innerText = '';
         if(progBar) progBar.style.width = '100%';
-        
+
         let a = document.createElement('a');
         a.href = dlUrl;
         a.setAttribute('download', fileName);
@@ -404,7 +404,7 @@ window.openNetworkTool = function() {
     document.getElementById('net-ip').innerText = "Memuat...";
     document.getElementById('net-isp').innerText = "Memuat...";
     document.getElementById('net-speed-val').innerText = "0.00";
-    
+
     fetch('https://get.geojs.io/v1/ip/geo.json')
         .then(res => res.json())
         .then(data => {
@@ -426,16 +426,16 @@ window.drawGraph = function() {
     if(!canvas) return;
     let ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     if(window.graphData.length === 0) return;
-    
+
     let maxVal = Math.max(...window.graphData, 1);
     let stepX = canvas.width / 19;
-    
+
     ctx.beginPath();
     ctx.strokeStyle = '#00ff00';
     ctx.lineWidth = 2;
-    
+
     for(let i = 0; i < window.graphData.length; i++) {
         let x = i * stepX;
         let y = canvas.height - ((window.graphData[i] / maxVal) * canvas.height);
@@ -444,7 +444,7 @@ window.drawGraph = function() {
         else ctx.lineTo(x, y);
     }
     ctx.stroke();
-    
+
     ctx.lineTo(canvas.width, canvas.height);
     ctx.lineTo(0, canvas.height);
     ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
@@ -456,7 +456,7 @@ window.startUploadTest = async function() {
     let speedVal = document.getElementById('net-speed-val');
     let circle = document.getElementById('net-speed-circle');
     let canvas = document.getElementById('speedGraph');
-    
+
     if (window.isNetTesting) {
         window.isNetTesting = false;
         clearTimeout(window.netTestTimeout);
@@ -465,15 +465,15 @@ window.startUploadTest = async function() {
         btn.style.color = '#000';
         btn.style.boxShadow = '0 0 15px rgba(0,255,0,0.4)';
         circle.style.display = 'none';
-        
+
         fetch('/stop_upping', { method: 'POST' }).catch(e=>console.log(e));
-        
+
         window.showToast("Proses dihentikan.", "info");
         return;
     }
-    
+
     if(window.isOfflineMode) { window.showToast("Matikan Mode Offline!", "error"); return; }
-    
+
     window.isNetTesting = true;
     btn.innerText = 'STOP PROSES UPLOAD';
     btn.style.background = '#ff003c';
@@ -483,16 +483,16 @@ window.startUploadTest = async function() {
     canvas.style.display = 'block';
     window.graphData = [];
     window.drawGraph();
-    
+
     window.netTestTimeout = setTimeout(() => {
         if(window.isNetTesting) {
             window.startUploadTest();
             window.showToast("Batas waktu uji (2 Menit) selesai.", "success");
         }
     }, 120000);
-    
+
     window.showToast("Menjalankan mesin native Python (UDP)...", "info");
-    
+
     fetch('/start_upping', { method: 'POST' })
         .then(res => res.json())
         .then(data => {
@@ -509,21 +509,21 @@ window.startUploadTest = async function() {
         while(window.isNetTesting) {
             await new Promise(r => setTimeout(r, 1000));
             if(!window.isNetTesting) break;
-            
+
             try {
                 let res = await fetch('/status_upping');
                 let data = await res.json();
-                
+
                 let speedMBps = data.speed_mbps || 0;
                 speedVal.innerText = speedMBps.toFixed(2);
-                
+
                 window.graphData.push(speedMBps);
                 if(window.graphData.length > 20) window.graphData.shift(); 
                 window.drawGraph();
             } catch(e) { }
         }
     };
-    
+
     monitorSpeed();
 };
 
@@ -563,30 +563,30 @@ window.processUpscale = async function() {
         window.showToast("Pilih gambar/foto terlebih dahulu!", "error");
         return;
     }
-    
+
     let btnStart = document.getElementById('btn-start-upscale');
     btnStart.innerText = "MENGUPLOAD KE SERVER WEB...";
     btnStart.disabled = true;
-    
+
     let file = fileInput.files[0];
     document.getElementById('img-before').src = URL.createObjectURL(file);
-    
+
     try {
         window.showToast("Memproses di Server Web... HP Anda tetap dingin!", "info");
-        
+
         let formData = new FormData();
         formData.append('image', file); 
-        
+
         let imageUrlDariWeb = URL.createObjectURL(file); 
-        
+
         let resultImg = document.getElementById('img-after');
         resultImg.onload = function() {
             document.getElementById('upscale-setup-container').style.display = 'none';
             document.getElementById('upscale-result-container').style.display = 'block';
-            
+
             document.getElementById('img-before').style.clipPath = `polygon(0 0, 50% 0, 50% 100%, 0 100%)`;
             document.getElementById('slider-handle').style.left = `50%`;
-            
+
             document.getElementById('btn-dl-upscale').onclick = async function() {
                 window.showToast("Mendownload hasil dari Web...", "info");
                 try {
@@ -603,12 +603,12 @@ window.processUpscale = async function() {
                     window.showToast("Gagal mengunduh gambar dari Web", "error");
                 }
             };
-            
+
             btnStart.innerText = "PROSES GAMBAR SEKARANG";
             btnStart.disabled = false;
             window.showToast("Upscale via Web Selesai!", "success");
         };
-        
+
         resultImg.src = imageUrlDariWeb;
 
     } catch (err) {
@@ -623,18 +623,18 @@ window.setupSlider = function() {
     if(!container) return;
     if(container.dataset.sliderInit) return; 
     container.dataset.sliderInit = "true";
-    
+
     let beforeImg = document.getElementById('img-before');
     let handle = document.getElementById('slider-handle');
     let isSliding = false;
-    
+
     let slide = function(e) {
         if(!isSliding) return;
         let rect = container.getBoundingClientRect();
         let clientX = e.touches ? e.touches[0].clientX : e.clientX;
         let x = clientX - rect.left;
         let pct = Math.max(0, Math.min(100, (x / rect.width) * 100)); 
-        
+
         beforeImg.style.clipPath = `polygon(0 0, ${pct}% 0, ${pct}% 100%, 0 100%)`;
         handle.style.left = `${pct}%`;
     };
@@ -664,44 +664,44 @@ window.generateIQC = function() {
         window.showToast("Gambar mentahan belum termuat!", "error");
         return;
     }
-    
+
     let pesan = document.getElementById('iqc-pesan').value || "Disana terang disinii padam";
     let provider = document.getElementById('iqc-provider').value || "INDOSAT LTE";
     let jamAtas = document.getElementById('iqc-jam-atas').value || "10:53";
     let jamPesan = document.getElementById('iqc-jam-pesan').value || "10:53";
-    
+
     let canvas = document.getElementById('iqc-canvas');
     let ctx = canvas.getContext('2d');
-    
+
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    
+
     let baseFontSize = canvas.width * 0.035; 
-    
+
     ctx.textBaseline = "middle"; 
     ctx.font = `bold ${baseFontSize * 0.85}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
     ctx.fillStyle = "white";
     ctx.textAlign = "left";
     ctx.fillText(provider, canvas.width * 0.12, canvas.height * 0.025); 
-    
+
     ctx.textAlign = "center";
     ctx.fillText(jamAtas, canvas.width / 2, canvas.height * 0.025); 
-    
+
     ctx.textBaseline = "top"; 
     ctx.font = `${baseFontSize * 1.15}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
     ctx.fillStyle = "white";
     ctx.textAlign = "left";
-    
+
     let maxWidth = canvas.width * 0.63; 
     let xPesan = canvas.width * 0.065;   
     let yPesan = canvas.height * 0.380;  
     let lineHeight = baseFontSize * 1.4;
-    
+
     let words = pesan.split(' ');
     let line = '';
     let lines = [];
-    
+
     for(let n = 0; n < words.length; n++) {
         let testLine = line + words[n] + ' ';
         let metrics = ctx.measureText(testLine);
@@ -714,7 +714,7 @@ window.generateIQC = function() {
         }
     }
     lines.push(line);
-    
+
     for(let k = 0; k < lines.length; k++) {
         ctx.fillText(lines[k], xPesan, yPesan + (k * lineHeight));
     }
@@ -724,7 +724,7 @@ window.generateIQC = function() {
     ctx.fillStyle = "#a3a3a3"; 
     ctx.textAlign = "right";
     ctx.fillText(jamPesan, canvas.width * 0.73, canvas.height * 0.435); 
-    
+
     document.getElementById('iqc-result-container').style.display = 'block';
     window.showToast("Fake Chat berhasil diracik!", "success");
 };
@@ -732,14 +732,14 @@ window.generateIQC = function() {
 window.downloadIQC = function() {
     let canvas = document.getElementById('iqc-canvas');
     let dataUrl = canvas.toDataURL("image/jpeg", 1.0);
-    
+
     let a = document.createElement('a');
     a.href = dataUrl;
     a.download = "IQC_Generated_" + Date.now() + ".jpg";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    
+
     window.showToast("Mendownload hasil ke Galeri...", "info");
 };
 
@@ -751,7 +751,7 @@ if (typeof window.oldHandleBackSocial === 'undefined') {
     window.handleBackButton = function() {
         let handled = false;
         let tools = ['tiktok-tool-view', 'ig-tool-view', 'upscale-tool-view', 'network-tool-view', 'anime-tool-view', 'iqc-tool-view'];
-        
+
         tools.forEach(id => {
             let panel = document.getElementById(id);
             if(panel && panel.classList.contains('active')) {
@@ -764,7 +764,7 @@ if (typeof window.oldHandleBackSocial === 'undefined') {
                 handled = true;
             }
         });
-        
+
         if(handled) return "handled";
         if(typeof window.oldHandleBackSocial === 'function') {
             return window.oldHandleBackSocial();
@@ -779,17 +779,17 @@ if (typeof window.oldHandleBackSocial === 'undefined') {
 setInterval(function() {
     let bannerVid = document.getElementById('tools-banner-video');
     if(!bannerVid) return;
-    
+
     let tabTools = document.getElementById('tab-tools');
     let isTabToolsActive = tabTools && tabTools.classList.contains('active');
-    
+
     let activeTools = ['tiktok-tool-view', 'ig-tool-view', 'network-tool-view', 'upscale-tool-view', 'anime-tool-view', 'iqc-tool-view', 'app-info-view', 'dev-view', 'terminal-view', 'history-update-view', 'settings-modal'];
-    
+
     let isAnyToolPanelOpen = activeTools.some(id => {
         let el = document.getElementById(id);
         return el && (el.classList.contains('active') || el.classList.contains('show'));
     });
-    
+
     if (isTabToolsActive && !isAnyToolPanelOpen) {
         if(bannerVid.paused) {
             let p = bannerVid.play();
@@ -809,16 +809,16 @@ setInterval(function() {
     let seekBar = document.getElementById('seek-bar');
     let audioPlayer = document.getElementById('local-audio-player');
     if(!seekBar || !audioPlayer) return;
-    
+
     if(audioPlayer.duration && !isNaN(audioPlayer.duration)) {
         let current = audioPlayer.currentTime || 0;
         let duration = audioPlayer.duration;
         let percent = (current / duration) * 100;
-        
+
         if(document.activeElement !== seekBar) {
             seekBar.value = percent;
         }
-        
+
         seekBar.style.background = `linear-gradient(to right, var(--primary) ${percent}%, #333 ${percent}%)`;
     } else {
         seekBar.style.background = `linear-gradient(to right, var(--primary) 0%, #333 0%)`;
@@ -834,15 +834,15 @@ window.lastStuckText = "";
 setInterval(function() {
     let titleEl = document.getElementById('mini-title');
     let audioEl = document.getElementById('local-audio-player');
-    
+
     if(!titleEl || !audioEl) return;
-    
+
     let txt = titleEl.innerText || "";
     let isLoading = txt.includes("Mengekstrak stream") || 
                     txt.includes("Mencari rekomendasi") || 
                     txt.includes("Memuat") ||
                     txt.includes("Menghubungkan");
-    
+
     if(isLoading) {
         if(window.lastStuckText === txt) {
             window.stuckMonitorCount++;
@@ -850,7 +850,7 @@ setInterval(function() {
             window.lastStuckText = txt;
             window.stuckMonitorCount = 0;
         }
-        
+
         if(window.stuckMonitorCount >= 12) {
             window.stuckMonitorCount = 0;
             if(typeof window.showToast === 'function') {
@@ -867,7 +867,7 @@ setInterval(function() {
         window.stuckMonitorCount = 0;
         window.lastStuckText = "";
     }
-    
+
     if(audioEl.duration && audioEl.currentTime >= (audioEl.duration - 0.5) && audioEl.duration > 0 && !isLoading) {
         window.stuckMonitorCount++;
         if(window.stuckMonitorCount >= 5) { 
@@ -886,7 +886,7 @@ setTimeout(() => {
     let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
     let avatarPath = localStorage.getItem('ytpro_avatar') || "";
     let finalAvatarUrl = `https://ui-avatars.com/api/?name=${uname}&background=002244&color=00e5ff`;
-    
+
     if (avatarPath && typeof PTERODACTYL_API_URL !== 'undefined') {
         finalAvatarUrl = PTERODACTYL_API_URL + avatarPath;
     }
@@ -907,15 +907,15 @@ window.openProfileView = function() {
     document.getElementById('profile-username-txt').innerText = uname;
     document.getElementById('profile-reg-txt').innerText = "Status: Akun Aktif";
     document.getElementById('profile-login-txt').innerText = "Terkoneksi ke Server Utama";
-    
+
     let avatarPath = localStorage.getItem('ytpro_avatar') || "";
     let finalUrl = avatarPath && typeof PTERODACTYL_API_URL !== 'undefined' ? (PTERODACTYL_API_URL + avatarPath) : `https://ui-avatars.com/api/?name=${uname}&background=002244&color=00e5ff`;
-    
+
     document.getElementById('profile-avatar-img').src = finalUrl;
     window.selectedAvatarBase64 = null; 
     document.getElementById('profile-old-pass').value = '';
     document.getElementById('profile-new-pass').value = '';
-    
+
     document.getElementById('profile-view').classList.add('active');
 };
 
@@ -940,7 +940,7 @@ window.updateProfileData = function() {
     let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user');
     let oldPass = document.getElementById('profile-old-pass').value.trim();
     let newPass = document.getElementById('profile-new-pass').value.trim();
-    
+
     if(!uname || uname.toUpperCase() === "GUEST") {
         window.showToast("Akses ditolak! Silakan login terlebih dahulu.", "error");
         return;
@@ -949,12 +949,12 @@ window.updateProfileData = function() {
         window.showToast("Autentikasi gagal. Data password tidak terbaca di memori!", "error");
         return;
     }
-    
+
     let btn = document.getElementById('btn-save-profile');
     btn.innerText = "MENYIMPAN..."; btn.disabled = true;
-    
+
     let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
-    
+
     fetch(apiUrl + '/api/update_profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1023,10 +1023,10 @@ if(typeof window.originalFetchAdmin === 'undefined') {
                 } catch(e) {}
             }
         }
-        
+
         let response = await window.originalFetchAdmin.apply(this, arguments);
         let clone = response.clone();
-        
+
         if(arguments[0] && arguments[0].includes('/api/auth')) {
             clone.json().then(data => {
                 if(data.status === 'success' && data.role) {
@@ -1054,7 +1054,7 @@ window.openAdminPanel = function() {
     let sidebarName = document.getElementById('sidebar-username-txt');
     if (sidebarName && sidebarName.textContent && sidebarName.textContent.trim().toUpperCase() !== "GUEST") uname = sidebarName.textContent.trim();
     if (uname.toUpperCase() === "GUEST") uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
-    
+
     let upass = localStorage.getItem('ytpro_password') || localStorage.getItem('password') || localStorage.getItem('user_pass');
 
     if(!upass) {
@@ -1082,7 +1082,7 @@ window.openAdminPanel = function() {
             let users = res.data;
             let uList = Object.keys(users);
             document.getElementById('admin-total-users').innerText = uList.length;
-            
+
             let html = "";
             uList.forEach(user => {
                 let d = users[user];
@@ -1090,7 +1090,7 @@ window.openAdminPanel = function() {
                 let playlistsCount = d.playlists ? Object.keys(d.playlists).length : 0;
                 let historyCount = d.history ? d.history.length : 0;
                 let roleColor = d.role === "Admin" ? "#ff003c" : "#00e5ff";
-                
+
                 let statusDot = '<span style="color:#ff003c;">● Offline</span>';
                 if(d.last_login && (d.last_login.includes(new Date().toLocaleString('en-US', { day: '2-digit', month: 'short' })) || d.last_login.includes("Baru"))) {
                     statusDot = '<span style="color:#1db954;">● Online</span>';
@@ -1111,7 +1111,7 @@ window.openAdminPanel = function() {
                         histHtml += `<div style="margin-bottom:4px; border-bottom:1px solid #111; padding-bottom:2px;"><span style="color:#1db954;">▶</span> <span style="color:#fff;">${t}</span> <span style="color:#888;">${a ? '— '+a : ''}</span></div>`;
                     });
                 } else histHtml = '<span style="color:#888;">Kosong</span>';
-                
+
                 html += `
                 <div style="background:#050505; border:1px solid #222; border-radius:10px; padding:15px; text-align:left; margin-bottom:10px;">
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px; border-bottom:1px solid #111; padding-bottom:12px;">
@@ -1168,19 +1168,27 @@ window.openAdminPanel = function() {
 window.changeUserRole = function(targetUser) {
     let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user');
     let upass = localStorage.getItem('ytpro_password') || localStorage.getItem('password') || localStorage.getItem('user_pass');
-    let newRole = document.getElementById(`role_select_${targetUser}`).value;
+    
+    let selectEl = document.getElementById('role_select_' + targetUser);
+    if(!selectEl) return;
+    
+    let newRole = selectEl.value;
     let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
 
     fetch(apiUrl + '/api/admin/change_role', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ admin_user: uname, admin_pass: upass, target_user: targetUser, new_role: newRole })
-    }).then(r => r.json()).then(res => {
+    })
+    .then(r => {
+        if (!r.ok) throw new Error("Endpoint 404 (Python Server belum ter-update)");
+        return r.json();
+    })
+    .then(res => {
         if(res.status === 'success') {
             window.showToast(res.message, "success");
-            // Auto Update UI Badge secara Real-time
-            let badge = document.getElementById(`role_badge_${targetUser}`);
-            let img = document.getElementById(`role_img_${targetUser}`);
+            let badge = document.getElementById('role_badge_' + targetUser);
+            let img = document.getElementById('role_img_' + targetUser);
             if(badge) {
                 badge.innerText = newRole;
                 badge.style.background = newRole === 'Admin' ? '#ff003c' : '#00e5ff';
@@ -1188,9 +1196,14 @@ window.changeUserRole = function(targetUser) {
             if(img) {
                 img.style.borderColor = newRole === 'Admin' ? '#ff003c' : '#00e5ff';
             }
-        } else window.showToast(res.message || "Gagal mengubah role", "error");
-    }).catch(e => window.showToast("Server error", "error"));
+        } else {
+            window.showToast(res.message || "Gagal mengubah role", "error");
+        }
+    }).catch(e => {
+        window.showToast("Koneksi Error: " + e.message, "error");
+    });
 };
+
 
 if (typeof window.oldHandleBackSocialAdmin === 'undefined') {
     window.oldHandleBackSocialAdmin = window.handleBackButton;
