@@ -1052,38 +1052,61 @@ setTimeout(() => {
     }
 }, 3000);
 
-// Mencegat respon auth API dari index.html untuk menyimpan Role
-let originalFetch = window.fetch;
-window.fetch = async function() {
-    let response = await originalFetch.apply(this, arguments);
-    let clone = response.clone();
-    
-    // Jika itu adalah request ke /api/auth (Login/Register)
-    if(arguments[0] && arguments[0].includes('/api/auth')) {
-        clone.json().then(data => {
-            if(data.status === 'success' && data.role) {
-                localStorage.setItem('ytpro_role', data.role);
-                let roleEl = document.getElementById('dash-role');
-                if(roleEl) roleEl.innerText = data.role;
-                
-                let adminBtn = document.getElementById('btn-sidebar-admin');
-                if(adminBtn) {
-                    if(data.role === "Admin") adminBtn.style.display = 'flex';
-                    else adminBtn.style.display = 'none';
+// Mencegat respon auth API dari aplikasi untuk otomatis menyimpan Role saat Login
+if(typeof window.originalFetchAdmin === 'undefined') {
+    window.originalFetchAdmin = window.fetch;
+    window.fetch = async function() {
+        let response = await window.originalFetchAdmin.apply(this, arguments);
+        let clone = response.clone();
+        
+        if(arguments[0] && arguments[0].includes('/api/auth')) {
+            clone.json().then(data => {
+                if(data.status === 'success' && data.role) {
+                    localStorage.setItem('ytpro_role', data.role);
+                    let roleEl = document.getElementById('dash-role');
+                    if(roleEl) roleEl.innerText = data.role;
+                    
+                    let adminBtn = document.getElementById('btn-sidebar-admin');
+                    if(adminBtn) {
+                        if(data.role === "Admin") adminBtn.style.display = 'flex';
+                        else adminBtn.style.display = 'none';
+                    }
                 }
-            }
-        }).catch(e => {});
-    }
-    return response;
-};
+            }).catch(e => {});
+        }
+        return response;
+    };
+}
 
 window.openAdminPanel = function() {
-    let uname = localStorage.getItem('username') || localStorage.getItem('ytpro_username');
-    let upass = localStorage.getItem('password') || localStorage.getItem('ytpro_password');
+    // 1. Pencari Nama Super Presisi (Sama seperti fitur Profile)
+    let uname = "Guest";
+    let sidebarName = document.getElementById('sidebar-username-txt');
+    if (sidebarName && sidebarName.textContent) {
+        let rawText = sidebarName.textContent.trim();
+        if (rawText && rawText.toUpperCase() !== "GUEST") uname = rawText;
+    }
+    if (uname.toUpperCase() === "GUEST" || !uname) {
+        let keys = ['ytpro_username', 'username', 'user', 'uname', 'akun'];
+        for (let i = 0; i < keys.length; i++) {
+            let val = localStorage.getItem(keys[i]);
+            if (val && val.toUpperCase() !== "GUEST") { uname = val; break; }
+        }
+    }
+
+    // 2. Pencari Password Akurat dari seluruh kemungkinan memori
+    let upass = localStorage.getItem('ytpro_password') || localStorage.getItem('password') || localStorage.getItem('user_pass');
+
+    // Jika data login kosong, larang masuk
+    if(!upass || uname.toUpperCase() === "GUEST") {
+        window.showToast("Akses ditolak! Silakan Login ulang agar sesi admin terbaca.", "error");
+        return;
+    }
+
     let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
 
     document.getElementById('admin-panel-view').classList.add('active');
-    document.getElementById('admin-users-list').innerHTML = '<div style="text-align:center; padding:30px 0;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#00e5ff;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#00e5ff;font-size:12px;margin-top:10px;">Menembus Database Server...</p></div>';
+    document.getElementById('admin-users-list').innerHTML = '<div style="text-align:center; padding:30px 0;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#00e5ff;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#00e5ff;font-size:12px;margin-top:10px;">Membobol Database Server...</p></div>';
 
     fetch(apiUrl + '/api/admin/users', {
         method: 'POST',
@@ -1098,8 +1121,6 @@ window.openAdminPanel = function() {
             document.getElementById('admin-total-users').innerText = uList.length;
             
             let html = "";
-            let now = new Date().getTime(); // Waktu saat ini (sistem HP)
-            
             uList.forEach(user => {
                 let d = users[user];
                 let avatar = d.avatar ? (apiUrl + d.avatar) : `https://ui-avatars.com/api/?name=${user}&background=002244&color=00e5ff`;
@@ -1107,11 +1128,9 @@ window.openAdminPanel = function() {
                 let historyCount = d.history ? d.history.length : 0;
                 let roleColor = d.role === "Admin" ? "#ff003c" : "#00e5ff";
                 
-                // Logika Online/Offline sederhana berdasarkan waktu last_login
+                // Indikator Online/Offline
                 let statusDot = '<span style="color:#ff003c;">● Offline</span>';
                 if(d.last_login) {
-                    // Karena Pterodactyl pakai format '%d %b %Y - %H:%M WIB', kita buat pengecekan perkiraan kasar
-                    // Jika last_login memiliki tanggal yang sama dengan hari ini, kita anggap Online/Aktif
                     let todayStr = new Date().toLocaleString('en-US', { day: '2-digit', month: 'short' }); 
                     if(d.last_login.includes(todayStr) || d.last_login.includes("Baru")) {
                         statusDot = '<span style="color:#1db954;">● Online (Hari Ini)</span>';
@@ -1141,11 +1160,11 @@ window.openAdminPanel = function() {
             });
             document.getElementById('admin-users-list').innerHTML = html;
         } else {
-            window.showToast(res.message || "Akses Ditolak!", "error");
+            window.showToast(res.message || "Akses Ditolak! Anda bukan Admin.", "error");
             document.getElementById('admin-panel-view').classList.remove('active');
         }
     }).catch(e => {
-        window.showToast("Gagal terhubung ke database", "error");
+        window.showToast("Gagal terhubung ke database server", "error");
         document.getElementById('admin-panel-view').classList.remove('active');
     });
 };
