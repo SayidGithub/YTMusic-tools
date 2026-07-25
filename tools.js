@@ -878,39 +878,13 @@ setInterval(function() {
 }, 1000);
 
 // =========================================================================
-// 12. MESIN UPDATE PROFILE & UPLOAD AVATAR (SUPER SMART DETECTOR)
+// 12. MESIN UPDATE PROFILE & UPLOAD AVATAR (STRICT LOCAL MEMORY)
 // =========================================================================
 window.selectedAvatarBase64 = null;
 
-// Fungsi pintar mencari username asli (Tahan banting terhadap CSS dan elemen tersembunyi)
-function getRealUsername() {
-    let uname = "Guest";
-    let sidebarName = document.getElementById('sidebar-username-txt');
-    
-    // PENGGUNAAN textContent SANGAT PENTING: Mengambil teks asli tanpa terpengaruh efek CSS huruf besar atau panel tersembunyi
-    if (sidebarName && sidebarName.textContent) {
-        let rawText = sidebarName.textContent.trim();
-        if (rawText && rawText.toUpperCase() !== "GUEST") {
-            uname = rawText; // Akan tetap "test", bukan "TEST"
-        }
-    }
-    
-    // Jika di HTML masih Guest/kosong, gali langsung ke akar memori (Local Storage) HP
-    if (uname.toUpperCase() === "GUEST" || !uname) {
-        let keys = ['ytpro_username', 'username', 'user', 'uname', 'akun'];
-        for (let i = 0; i < keys.length; i++) {
-            let val = localStorage.getItem(keys[i]);
-            if (val && val.toUpperCase() !== "GUEST") {
-                uname = val;
-                break;
-            }
-        }
-    }
-    return uname;
-}
-
 setTimeout(() => {
-    let uname = getRealUsername();
+    // 100% Mengambil langsung dari memori otak HP, mengabaikan teks HTML
+    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
     let avatarPath = localStorage.getItem('ytpro_avatar') || "";
     let finalAvatarUrl = `https://ui-avatars.com/api/?name=${uname}&background=002244&color=00e5ff`;
     
@@ -922,9 +896,9 @@ setTimeout(() => {
 }, 3000);
 
 window.openProfileView = function() {
-    let uname = getRealUsername();
+    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
 
-    if(uname.toUpperCase() === "GUEST" || !uname) {
+    if(uname.toUpperCase() === "GUEST") {
         window.showToast("Sesi habis! Silakan Login ke akun kamu dulu ya sayang.", "error");
         let authModal = document.getElementById('auth-modal');
         if(authModal) authModal.classList.add('show');
@@ -957,25 +931,24 @@ window.handleAvatarSelect = function(event) {
         reader.onload = function(e) {
             window.selectedAvatarBase64 = e.target.result; 
             document.getElementById('profile-avatar-img').src = window.selectedAvatarBase64; 
-            window.showToast("Foto siap! Jangan lupa ketik password lama untuk menyimpan.", "info");
+            window.showToast("Foto siap! Silakan klik simpan.", "info");
         };
         reader.readAsDataURL(file);
     }
 };
 
 window.updateProfileData = function() {
-    let uname = getRealUsername();
-    
-    if(uname.toUpperCase() === "GUEST") {
-        window.showToast("Akses ditolak! Silakan login terlebih dahulu.", "error");
-        return;
-    }
-
+    // 100% Membaca dari memori lokal untuk menghindari eror huruf besar/kecil
+    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user');
     let oldPass = document.getElementById('profile-old-pass').value.trim();
     let newPass = document.getElementById('profile-new-pass').value.trim();
     
+    if(!uname || uname.toUpperCase() === "GUEST") {
+        window.showToast("Akses ditolak! Silakan login terlebih dahulu.", "error");
+        return;
+    }
     if(!oldPass) {
-        window.showToast("Wajib mengisi Password Lama untuk validasi keamanan!", "error");
+        window.showToast("Autentikasi gagal. Data password tidak terbaca di memori!", "error");
         return;
     }
     
@@ -996,26 +969,23 @@ window.updateProfileData = function() {
     })
     .then(r => r.json())
     .then(res => {
-        btn.innerText = "SIMPAN & UPLOAD"; btn.disabled = false;
+        btn.innerText = "SIMPAN PERUBAHAN"; btn.disabled = false;
         if(res.status === 'success') {
             window.showToast("Profile & Avatar Berhasil Diperbarui!", "success");
-            
             if(newPass) {
                 localStorage.setItem('ytpro_password', newPass);
                 localStorage.setItem('password', newPass); 
             }
-            
             if(res.avatar) {
                 localStorage.setItem('ytpro_avatar', res.avatar);
                 document.getElementById('header-avatar-img').src = apiUrl + res.avatar;
             }
-            
             document.getElementById('profile-view').classList.remove('active');
         } else {
             window.showToast(res.message || "Gagal menyimpan. Password salah?", "error");
         }
     }).catch(e => {
-        btn.innerText = "SIMPAN & UPLOAD"; btn.disabled = false;
+        btn.innerText = "SIMPAN PERUBAHAN"; btn.disabled = false;
         window.showToast("Gagal terhubung ke server!", "error");
     });
 };
@@ -1036,10 +1006,10 @@ if (typeof window.oldHandleBackSocialProfile === 'undefined') {
 }
 
 // =========================================================================
-// 13. ADMIN PANEL SYSTEM & DASHBOARD ROLE 
+// 13. ADMIN PANEL SYSTEM & DASHBOARD ROLE (STRICT LOCAL MEMORY)
 // =========================================================================
 
-// Penyelarasan Role & Status setiap kali halaman ter-load
+// Penyelarasan Role
 setTimeout(() => {
     let savedRole = localStorage.getItem('ytpro_role') || "Member";
     let roleEl = document.getElementById('dash-role');
@@ -1052,7 +1022,7 @@ setTimeout(() => {
     }
 }, 3000);
 
-// Mencegat respon auth API dari aplikasi untuk otomatis menyimpan Role saat Login
+// Pencegat otentikasi login
 if(typeof window.originalFetchAdmin === 'undefined') {
     window.originalFetchAdmin = window.fetch;
     window.fetch = async function() {
@@ -1079,27 +1049,12 @@ if(typeof window.originalFetchAdmin === 'undefined') {
 }
 
 window.openAdminPanel = function() {
-    // 1. Pencari Nama Super Presisi (Sama seperti fitur Profile)
-    let uname = "Guest";
-    let sidebarName = document.getElementById('sidebar-username-txt');
-    if (sidebarName && sidebarName.textContent) {
-        let rawText = sidebarName.textContent.trim();
-        if (rawText && rawText.toUpperCase() !== "GUEST") uname = rawText;
-    }
-    if (uname.toUpperCase() === "GUEST" || !uname) {
-        let keys = ['ytpro_username', 'username', 'user', 'uname', 'akun'];
-        for (let i = 0; i < keys.length; i++) {
-            let val = localStorage.getItem(keys[i]);
-            if (val && val.toUpperCase() !== "GUEST") { uname = val; break; }
-        }
-    }
-
-    // 2. Pencari Password Akurat dari seluruh kemungkinan memori
+    // 100% Membaca nama dan password asli dari memori otak HP
+    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user');
     let upass = localStorage.getItem('ytpro_password') || localStorage.getItem('password') || localStorage.getItem('user_pass');
-
-    // Jika data login kosong, larang masuk
-    if(!upass || uname.toUpperCase() === "GUEST") {
-        window.showToast("Akses ditolak! Silakan Login ulang agar sesi admin terbaca.", "error");
+    
+    if(!uname || !upass || uname.toUpperCase() === "GUEST") {
+        window.showToast("Akses ditolak! Data login tidak terbaca, silakan Logout dan Login ulang.", "error");
         return;
     }
 
@@ -1128,7 +1083,6 @@ window.openAdminPanel = function() {
                 let historyCount = d.history ? d.history.length : 0;
                 let roleColor = d.role === "Admin" ? "#ff003c" : "#00e5ff";
                 
-                // Indikator Online/Offline
                 let statusDot = '<span style="color:#ff003c;">● Offline</span>';
                 if(d.last_login) {
                     let todayStr = new Date().toLocaleString('en-US', { day: '2-digit', month: 'short' }); 
@@ -1138,11 +1092,11 @@ window.openAdminPanel = function() {
                 }
                 
                 html += `
-                <div style="background:#050505; border:1px solid #222; border-radius:10px; padding:15px; text-align:left; position:relative;">
+                <div style="background:#050505; border:1px solid #222; border-radius:10px; padding:15px; text-align:left; position:relative; margin-bottom:10px;">
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px; border-bottom:1px solid #111; padding-bottom:12px;">
                         <img src="${avatar}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid ${roleColor};">
                         <div>
-                            <h4 style="margin:0; color:#fff; font-size:14px; text-transform:uppercase;">${user} <span style="background:${roleColor}; color:#000; font-size:9px; padding:2px 6px; border-radius:4px; vertical-align:middle;">${d.role}</span></h4>
+                            <h4 style="margin:0; color:#fff; font-size:14px; text-transform:uppercase;">${user} <span style="background:${roleColor}; color:#000; font-size:9px; padding:2px 6px; border-radius:4px; vertical-align:middle;">${d.role || 'Member'}</span></h4>
                             <p style="margin:2px 0 0 0; font-size:10px; font-weight:bold;">${statusDot}</p>
                         </div>
                     </div>
@@ -1169,7 +1123,6 @@ window.openAdminPanel = function() {
     });
 };
 
-// Pencegat tombol back khusus admin panel
 if (typeof window.oldHandleBackSocialAdmin === 'undefined') {
     window.oldHandleBackSocialAdmin = window.handleBackButton;
     window.handleBackButton = function() {
