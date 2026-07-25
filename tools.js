@@ -883,7 +883,6 @@ setInterval(function() {
 window.selectedAvatarBase64 = null;
 
 setTimeout(() => {
-    // 100% Mengambil langsung dari memori otak HP, mengabaikan teks HTML
     let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
     let avatarPath = localStorage.getItem('ytpro_avatar') || "";
     let finalAvatarUrl = `https://ui-avatars.com/api/?name=${uname}&background=002244&color=00e5ff`;
@@ -938,7 +937,6 @@ window.handleAvatarSelect = function(event) {
 };
 
 window.updateProfileData = function() {
-    // 100% Membaca dari memori lokal untuk menghindari eror huruf besar/kecil
     let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user');
     let oldPass = document.getElementById('profile-old-pass').value.trim();
     let newPass = document.getElementById('profile-new-pass').value.trim();
@@ -1006,11 +1004,25 @@ if (typeof window.oldHandleBackSocialProfile === 'undefined') {
 }
 
 // =========================================================================
-// 13. ADMIN PANEL SYSTEM & DASHBOARD ROLE (STRICT LOCAL MEMORY)
+// 13. ADMIN PANEL SYSTEM & DASHBOARD ROLE (ULTIMATE FIX)
 // =========================================================================
 
-// Penyelarasan Role
+// LAPIS 1: Menangkap Password saat tombol ditekan
 setTimeout(() => {
+    let authBtn = document.getElementById('btn-auth-action');
+    if(authBtn) {
+        authBtn.addEventListener('click', function() {
+            let u = document.getElementById('auth-username');
+            let p = document.getElementById('auth-password');
+            if(u && p && u.value && p.value) {
+                localStorage.setItem('ytpro_username', u.value.trim());
+                localStorage.setItem('username', u.value.trim());
+                localStorage.setItem('ytpro_password', p.value.trim());
+                localStorage.setItem('password', p.value.trim());
+            }
+        });
+    }
+    
     let savedRole = localStorage.getItem('ytpro_role') || "Member";
     let roleEl = document.getElementById('dash-role');
     if(roleEl) roleEl.innerText = savedRole;
@@ -1020,26 +1032,37 @@ setTimeout(() => {
         if(savedRole === "Admin") adminBtn.style.display = 'flex';
         else adminBtn.style.display = 'none';
     }
-}, 3000);
+}, 2000);
 
-// Pencegat otentikasi login
+// LAPIS 2: Mencegat Fetch API untuk menyimpan Data Auth
 if(typeof window.originalFetchAdmin === 'undefined') {
     window.originalFetchAdmin = window.fetch;
     window.fetch = async function() {
+        let reqBody = null;
+        try {
+            if(arguments[1] && arguments[1].body) reqBody = JSON.parse(arguments[1].body);
+        } catch(e) {}
+        
         let response = await window.originalFetchAdmin.apply(this, arguments);
         let clone = response.clone();
         
         if(arguments[0] && arguments[0].includes('/api/auth')) {
             clone.json().then(data => {
-                if(data.status === 'success' && data.role) {
-                    localStorage.setItem('ytpro_role', data.role);
-                    let roleEl = document.getElementById('dash-role');
-                    if(roleEl) roleEl.innerText = data.role;
-                    
-                    let adminBtn = document.getElementById('btn-sidebar-admin');
-                    if(adminBtn) {
-                        if(data.role === "Admin") adminBtn.style.display = 'flex';
-                        else adminBtn.style.display = 'none';
+                if(data.status === 'success') {
+                    if(data.role) {
+                        localStorage.setItem('ytpro_role', data.role);
+                        let roleEl = document.getElementById('dash-role');
+                        if(roleEl) roleEl.innerText = data.role;
+                        
+                        let adminBtn = document.getElementById('btn-sidebar-admin');
+                        if(adminBtn) {
+                            if(data.role === "Admin") adminBtn.style.display = 'flex';
+                            else adminBtn.style.display = 'none';
+                        }
+                    }
+                    if(reqBody && reqBody.password) {
+                        localStorage.setItem('ytpro_password', reqBody.password);
+                        localStorage.setItem('password', reqBody.password);
                     }
                 }
             }).catch(e => {});
@@ -1049,12 +1072,31 @@ if(typeof window.originalFetchAdmin === 'undefined') {
 }
 
 window.openAdminPanel = function() {
-    // 100% Membaca nama dan password asli dari memori otak HP
-    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user');
-    let upass = localStorage.getItem('ytpro_password') || localStorage.getItem('password') || localStorage.getItem('user_pass');
+    let uname = "Guest";
+    let sidebarName = document.getElementById('sidebar-username-txt');
+    if (sidebarName && sidebarName.textContent) {
+        let rawText = sidebarName.textContent.trim();
+        if (rawText && rawText.toUpperCase() !== "GUEST") uname = rawText;
+    }
+    if (uname.toUpperCase() === "GUEST" || !uname) {
+        uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
+    }
     
-    if(!uname || !upass || uname.toUpperCase() === "GUEST") {
-        window.showToast("Akses ditolak! Data login tidak terbaca, silakan Logout dan Login ulang.", "error");
+    let upass = localStorage.getItem('ytpro_password') || localStorage.getItem('password') || localStorage.getItem('user_pass');
+
+    // LAPIS 3: JIKA PASSWORD MASIH KOSONG, TANYAKAN LANGSUNG (POPUP)!
+    if(!upass) {
+        upass = prompt("Keamanan Server: Masukkan Password Admin Anda untuk memverifikasi sesi:", "");
+        if(!upass) {
+            window.showToast("Akses dibatalkan. Password diperlukan.", "error");
+            return;
+        }
+        localStorage.setItem('ytpro_password', upass);
+        localStorage.setItem('password', upass);
+    }
+
+    if(uname.toUpperCase() === "GUEST") {
+        window.showToast("Akses ditolak! Silakan Login ulang.", "error");
         return;
     }
 
