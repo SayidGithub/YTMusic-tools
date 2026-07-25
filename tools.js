@@ -1294,17 +1294,28 @@ window.switchMovieServer = function(serverNum) {
     let id = window.currentMovieData.id;
     let type = window.currentMovieData.type; // 'movie' atau 'tv'
     
-    // Inject Subtitle Indonesia otomatis dengan server iFrame
+    // Inject Subtitle Indonesia otomatis dengan domain server yang lebih stabil
     let embedUrl = '';
     if(serverNum === 1) {
-        embedUrl = type === 'tv' ? `https://vidsrc.to/embed/tv/${id}` : `https://vidsrc.to/embed/movie/${id}`;
+        // Server 1: Vidsrc.me (Domain paling stabil saat ini)
+        embedUrl = type === 'tv' ? `https://vidsrc.me/embed/tv?tmdb=${id}` : `https://vidsrc.me/embed/movie?tmdb=${id}`;
+    } else if(serverNum === 2) {
+        // Server 2: Vidsrc.net (Jalur alternatif)
+        embedUrl = type === 'tv' ? `https://vidsrc.net/embed/tv?tmdb=${id}` : `https://vidsrc.net/embed/movie?tmdb=${id}`;
     } else {
-        embedUrl = type === 'tv' ? `https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1` : `https://multiembed.mov/?video_id=${id}&tmdb=1`;
+        // Server 3: Smashy Stream (Server Independen yang kuat)
+        embedUrl = type === 'tv' ? `https://player.smashy.stream/tv/${id}?s=1&e=1` : `https://player.smashy.stream/movie/${id}`;
     }
     
-    iframe.src = embedUrl;
+    // Tampilkan loading screen sementara iframe memuat
+    iframe.src = ""; 
+    setTimeout(() => {
+        iframe.src = embedUrl;
+    }, 100);
+    
     window.showToast("Menghubungkan ke Server " + serverNum, "info");
 };
+
 
 window.closeMoviePlayer = function() {
     document.getElementById('movie-iframe').src = ""; // Stop video & audio
