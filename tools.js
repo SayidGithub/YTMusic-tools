@@ -1219,3 +1219,115 @@ if (typeof window.oldHandleBackSocialAdmin === 'undefined') {
         return "exit";
     };
 }
+// =========================================================================
+// 14. MOVIE & TV SHOW WATCHER (NETFLIX CLONE ENGINE)
+// =========================================================================
+
+window.openMovieTool = function() {
+    document.getElementById('movie-tool-view').classList.add('active');
+};
+window.closeMovieTool = function() {
+    document.getElementById('movie-tool-view').classList.remove('active');
+};
+
+window.searchMovieApi = function() {
+    let query = document.getElementById('movie-search-input').value.trim();
+    let resDiv = document.getElementById('movie-search-results');
+    if(!query) return;
+    
+    resDiv.innerHTML = '<div style="text-align:center;padding:20px;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#e50914;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#888;font-size:12px;margin-top:10px;">Menembus database film dunia...</p></div>';
+    
+    // Menggunakan TMDB Public Read API untuk Search Meta Data
+    let tmdbKey = '15d2ea6d0dc1d476efbca3eba2b9bbfb'; 
+    fetch(`https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&language=id-ID&query=${encodeURIComponent(query)}`)
+    .then(res => res.json())
+    .then(data => {
+        resDiv.innerHTML = '';
+        if(data.results && data.results.length > 0) {
+            let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+            data.results.forEach(movie => {
+                if(movie.media_type === 'person') return; // Skip actor profiles
+                
+                let title = (movie.title || movie.name).replace(/'/g, "\\'");
+                let img = movie.poster_path ? `https://image.tmdb.org/t/p/w200${movie.poster_path}` : '';
+                let imgHtml = img ? `<img src="${img}" class="card-img" style="border:1px solid #e50914;">` : `<div class="card-img" style="border:1px solid #e50914; background:#111; display:flex; align-items:center; justify-content:center; font-size:8px;">No IMG</div>`;
+                let id = movie.id;
+                let type = movie.media_type === 'tv' ? 'TV Series' : 'Movie';
+                let release = movie.release_date || movie.first_air_date || 'N/A';
+                let score = movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A';
+                
+                html += `
+                <div class="card slide-up" onclick="window.playMovie('${id}', '${title}', '${movie.media_type}')" style="border-color:#e50914; background:#000a14;">
+                    ${imgHtml}
+                    <div class="card-info">
+                        <h3 style="color:#fff;">${movie.title || movie.name}</h3>
+                        <p style="color:#e50914;">${type} • ⭐ ${score} • ${release.substring(0,4)}</p>
+                    </div>
+                    <div style="color:#e50914; font-size:18px;">▶</div>
+                </div>`;
+            });
+            html += '</div>';
+            resDiv.innerHTML = html;
+        } else {
+            resDiv.innerHTML = '<p style="color:#666;text-align:center;font-size:12px;">Film tidak ditemukan di server.</p>';
+        }
+    }).catch(err => {
+        resDiv.innerHTML = '<p style="color:var(--primary);text-align:center;font-size:12px;">Gagal terhubung ke database API.</p>';
+    });
+};
+
+window.currentMovieData = { id: '', type: '' };
+
+window.playMovie = function(id, title, type) {
+    window.currentMovieData = { id: id, type: type };
+    document.getElementById('movie-player-title').innerText = title;
+    document.getElementById('movie-player-modal').classList.add('show');
+    window.switchMovieServer(1); // Auto load Server 1
+    
+    // Auto-Pause Musik kalau ada yang lagi diputar
+    let lp = document.getElementById('local-audio-player');
+    if (lp && !lp.paused) { window.togglePlayPause(); }
+};
+
+window.switchMovieServer = function(serverNum) {
+    let iframe = document.getElementById('movie-iframe');
+    let id = window.currentMovieData.id;
+    let type = window.currentMovieData.type; // 'movie' atau 'tv'
+    
+    // Inject Subtitle Indonesia otomatis dengan server iFrame
+    let embedUrl = '';
+    if(serverNum === 1) {
+        embedUrl = type === 'tv' ? `https://vidsrc.to/embed/tv/${id}` : `https://vidsrc.to/embed/movie/${id}`;
+    } else {
+        embedUrl = type === 'tv' ? `https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1` : `https://multiembed.mov/?video_id=${id}&tmdb=1`;
+    }
+    
+    iframe.src = embedUrl;
+    window.showToast("Menghubungkan ke Server " + serverNum, "info");
+};
+
+window.closeMoviePlayer = function() {
+    document.getElementById('movie-iframe').src = ""; // Stop video & audio
+    document.getElementById('movie-player-modal').classList.remove('show');
+};
+
+// Pencegat tombol back khusus movie panel
+if (typeof window.oldHandleBackSocialMovie === 'undefined') {
+    window.oldHandleBackSocialMovie = window.handleBackButton;
+    window.handleBackButton = function() {
+        let moviePlayer = document.getElementById('movie-player-modal');
+        if(moviePlayer && moviePlayer.classList.contains('show')) {
+            window.closeMoviePlayer();
+            return "handled";
+        }
+        let moviePanel = document.getElementById('movie-tool-view');
+        if(moviePanel && moviePanel.classList.contains('active')) {
+            window.closeMovieTool();
+            return "handled";
+        }
+        if(typeof window.oldHandleBackSocialMovie === 'function') {
+            return window.oldHandleBackSocialMovie();
+        }
+        return "exit";
+    };
+}
