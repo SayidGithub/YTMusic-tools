@@ -1294,19 +1294,19 @@ window.switchMovieServer = function(serverNum) {
     let id = window.currentMovieData.id;
     let type = window.currentMovieData.type; // 'movie' atau 'tv'
     
-    // Menggunakan Server Custom Pilihanmu & Server Premium Anti-Iklan
+    // Menyedot judul film dari UI untuk digunakan sebagai kata kunci pencarian LK21
+    let title = document.getElementById('movie-player-title').innerText;
+    
     let embedUrl = '';
     if(serverNum === 1) {
-        // Server 1: Custom Web Link (h5.d9s3x4.com)
-        // Format otomatis menyesuaikan dengan TMDB ID dari database
-        embedUrl = type === 'tv' ? `https://h5.d9s3x4.com/tv/${id}` : `https://h5.d9s3x4.com/movie/${id}`;
-        
-        // (Opsional: Jika servermu butuh format "?id=", kamu cukup ubah kodenya menjadi: `https://h5.d9s3x4.com/?id=${id}`)
+        // Server 1: Custom Web Link (LK21 Official)
+        // Karena LK21 tidak support TMDB ID, kita gunakan mode injeksi URL pencarian
+        embedUrl = `https://tv12.lk21official.cc/?s=${encodeURIComponent(title)}`;
     } else if(serverNum === 2) {
-        // Server 2: Embed.su (Server Bersih Cadangan 1)
+        // Server 2: Embed.su (Server Premium Bersih)
         embedUrl = type === 'tv' ? `https://embed.su/embed/tv/${id}/1/1` : `https://embed.su/embed/movie/${id}`;
     } else {
-        // Server 3: Vidsrc.cc (Server Bersih Cadangan 2)
+        // Server 3: Vidsrc.cc (Server Cadangan)
         embedUrl = type === 'tv' ? `https://vidsrc.cc/v2/embed/tv/${id}/1/1` : `https://vidsrc.cc/v2/embed/movie/${id}`;
     }
     
