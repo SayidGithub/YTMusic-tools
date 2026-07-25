@@ -1004,66 +1004,37 @@ if (typeof window.oldHandleBackSocialProfile === 'undefined') {
 }
 
 // =========================================================================
-// 13. ADMIN PANEL SYSTEM & DASHBOARD ROLE (ULTIMATE FIX)
+// 13. ADMIN PANEL SYSTEM & DASHBOARD ROLE (ULTIMATE)
 // =========================================================================
 
-// LAPIS 1: Menangkap Password saat tombol ditekan
-setTimeout(() => {
-    let authBtn = document.getElementById('btn-auth-action');
-    if(authBtn) {
-        authBtn.addEventListener('click', function() {
-            let u = document.getElementById('auth-username');
-            let p = document.getElementById('auth-password');
-            if(u && p && u.value && p.value) {
-                localStorage.setItem('ytpro_username', u.value.trim());
-                localStorage.setItem('username', u.value.trim());
-                localStorage.setItem('ytpro_password', p.value.trim());
-                localStorage.setItem('password', p.value.trim());
-            }
-        });
-    }
-    
-    let savedRole = localStorage.getItem('ytpro_role') || "Member";
-    let roleEl = document.getElementById('dash-role');
-    if(roleEl) roleEl.innerText = savedRole;
-    
-    let adminBtn = document.getElementById('btn-sidebar-admin');
-    if(adminBtn) {
-        if(savedRole === "Admin") adminBtn.style.display = 'flex';
-        else adminBtn.style.display = 'none';
-    }
-}, 2000);
-
-// LAPIS 2: Mencegat Fetch API untuk menyimpan Data Auth
+// Inject Device Info (CPU/OS) ke dalam Fetch API saat Login/Sync
 if(typeof window.originalFetchAdmin === 'undefined') {
     window.originalFetchAdmin = window.fetch;
     window.fetch = async function() {
-        let reqBody = null;
-        try {
-            if(arguments[1] && arguments[1].body) reqBody = JSON.parse(arguments[1].body);
-        } catch(e) {}
+        if(arguments[1] && arguments[1].body && typeof arguments[1].body === 'string') {
+            if(arguments[0] && (arguments[0].includes('/api/auth') || arguments[0].includes('/api/sync') || arguments[0].includes('/api/update_profile'))) {
+                try {
+                    let reqBody = JSON.parse(arguments[1].body);
+                    let cpu = navigator.hardwareConcurrency ? navigator.hardwareConcurrency + ' Cores' : 'Unknown CPU';
+                    let mem = navigator.deviceMemory ? navigator.deviceMemory + 'GB RAM' : 'Unknown RAM';
+                    let os = navigator.userAgent.includes("Android") ? "Android" : "Unknown OS";
+                    reqBody.device_info = `OS: ${os}, ${cpu}, ${mem}`;
+                    arguments[1].body = JSON.stringify(reqBody);
+                } catch(e) {}
+            }
+        }
         
         let response = await window.originalFetchAdmin.apply(this, arguments);
         let clone = response.clone();
         
         if(arguments[0] && arguments[0].includes('/api/auth')) {
             clone.json().then(data => {
-                if(data.status === 'success') {
-                    if(data.role) {
-                        localStorage.setItem('ytpro_role', data.role);
-                        let roleEl = document.getElementById('dash-role');
-                        if(roleEl) roleEl.innerText = data.role;
-                        
-                        let adminBtn = document.getElementById('btn-sidebar-admin');
-                        if(adminBtn) {
-                            if(data.role === "Admin") adminBtn.style.display = 'flex';
-                            else adminBtn.style.display = 'none';
-                        }
-                    }
-                    if(reqBody && reqBody.password) {
-                        localStorage.setItem('ytpro_password', reqBody.password);
-                        localStorage.setItem('password', reqBody.password);
-                    }
+                if(data.status === 'success' && data.role) {
+                    localStorage.setItem('ytpro_role', data.role);
+                    let roleEl = document.getElementById('dash-role');
+                    if(roleEl) roleEl.innerText = data.role;
+                    let adminBtn = document.getElementById('btn-sidebar-admin');
+                    if(adminBtn) adminBtn.style.display = (data.role === "Admin") ? 'flex' : 'none';
                 }
             }).catch(e => {});
         }
@@ -1071,39 +1042,33 @@ if(typeof window.originalFetchAdmin === 'undefined') {
     };
 }
 
+setTimeout(() => {
+    let savedRole = localStorage.getItem('ytpro_role') || "Member";
+    let roleEl = document.getElementById('dash-role'); if(roleEl) roleEl.innerText = savedRole;
+    let adminBtn = document.getElementById('btn-sidebar-admin');
+    if(adminBtn) adminBtn.style.display = (savedRole === "Admin") ? 'flex' : 'none';
+}, 2000);
+
 window.openAdminPanel = function() {
     let uname = "Guest";
     let sidebarName = document.getElementById('sidebar-username-txt');
-    if (sidebarName && sidebarName.textContent) {
-        let rawText = sidebarName.textContent.trim();
-        if (rawText && rawText.toUpperCase() !== "GUEST") uname = rawText;
-    }
-    if (uname.toUpperCase() === "GUEST" || !uname) {
-        uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
-    }
+    if (sidebarName && sidebarName.textContent && sidebarName.textContent.trim().toUpperCase() !== "GUEST") uname = sidebarName.textContent.trim();
+    if (uname.toUpperCase() === "GUEST") uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
     
     let upass = localStorage.getItem('ytpro_password') || localStorage.getItem('password') || localStorage.getItem('user_pass');
 
-    // LAPIS 3: JIKA PASSWORD MASIH KOSONG, TANYAKAN LANGSUNG (POPUP)!
     if(!upass) {
-        upass = prompt("Keamanan Server: Masukkan Password Admin Anda untuk memverifikasi sesi:", "");
-        if(!upass) {
-            window.showToast("Akses dibatalkan. Password diperlukan.", "error");
-            return;
-        }
-        localStorage.setItem('ytpro_password', upass);
+        upass = prompt("Keamanan Server: Masukkan Password Admin Anda:", "");
+        if(!upass) { window.showToast("Akses dibatalkan.", "error"); return; }
         localStorage.setItem('password', upass);
     }
 
-    if(uname.toUpperCase() === "GUEST") {
-        window.showToast("Akses ditolak! Silakan Login ulang.", "error");
-        return;
-    }
+    if(uname.toUpperCase() === "GUEST") { window.showToast("Akses ditolak! Silakan Login ulang.", "error"); return; }
 
     let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
 
     document.getElementById('admin-panel-view').classList.add('active');
-    document.getElementById('admin-users-list').innerHTML = '<div style="text-align:center; padding:30px 0;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#00e5ff;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#00e5ff;font-size:12px;margin-top:10px;">Membobol Database Server...</p></div>';
+    document.getElementById('admin-users-list').innerHTML = '<div style="text-align:center; padding:30px 0;"><p style="color:#00e5ff;font-size:12px;">Membobol Database Server...</p></div>';
 
     fetch(apiUrl + '/api/admin/users', {
         method: 'POST',
@@ -1126,19 +1091,32 @@ window.openAdminPanel = function() {
                 let roleColor = d.role === "Admin" ? "#ff003c" : "#00e5ff";
                 
                 let statusDot = '<span style="color:#ff003c;">● Offline</span>';
-                if(d.last_login) {
-                    let todayStr = new Date().toLocaleString('en-US', { day: '2-digit', month: 'short' }); 
-                    if(d.last_login.includes(todayStr) || d.last_login.includes("Baru")) {
-                        statusDot = '<span style="color:#1db954;">● Online (Hari Ini)</span>';
-                    }
+                if(d.last_login && (d.last_login.includes(new Date().toLocaleString('en-US', { day: '2-digit', month: 'short' })) || d.last_login.includes("Baru"))) {
+                    statusDot = '<span style="color:#1db954;">● Online</span>';
                 }
+
+                // Render Playlist Dropdown
+                let plHtml = '';
+                if(playlistsCount > 0) {
+                    for(let pl in d.playlists) plHtml += `<div style="margin-bottom:4px;"><span style="color:#ffaa00; font-weight:bold;">• ${pl}</span> <span style="color:#888;">(${d.playlists[pl].length} Lagu)</span></div>`;
+                } else plHtml = '<span style="color:#888;">Kosong</span>';
+
+                // Render History Dropdown
+                let histHtml = '';
+                if(historyCount > 0) {
+                    let hArr = d.history.slice().reverse();
+                    hArr.forEach(h => {
+                        let t = h.title || h; let a = h.artist || '';
+                        histHtml += `<div style="margin-bottom:4px; border-bottom:1px solid #111; padding-bottom:2px;"><span style="color:#1db954;">▶</span> <span style="color:#fff;">${t}</span> <span style="color:#888;">${a ? '— '+a : ''}</span></div>`;
+                    });
+                } else histHtml = '<span style="color:#888;">Kosong</span>';
                 
                 html += `
-                <div style="background:#050505; border:1px solid #222; border-radius:10px; padding:15px; text-align:left; position:relative; margin-bottom:10px;">
+                <div style="background:#050505; border:1px solid #222; border-radius:10px; padding:15px; text-align:left; margin-bottom:10px;">
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px; border-bottom:1px solid #111; padding-bottom:12px;">
                         <img src="${avatar}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid ${roleColor};">
                         <div>
-                            <h4 style="margin:0; color:#fff; font-size:14px; text-transform:uppercase;">${user} <span style="background:${roleColor}; color:#000; font-size:9px; padding:2px 6px; border-radius:4px; vertical-align:middle;">${d.role || 'Member'}</span></h4>
+                            <h4 style="margin:0; color:#fff; font-size:14px; text-transform:uppercase;">${user} <span style="background:${roleColor}; color:#000; font-size:9px; padding:2px 6px; border-radius:4px;">${d.role || 'Member'}</span></h4>
                             <p style="margin:2px 0 0 0; font-size:10px; font-weight:bold;">${statusDot}</p>
                         </div>
                     </div>
@@ -1146,22 +1124,56 @@ window.openAdminPanel = function() {
                     <div style="font-size:11px; color:#aaa; line-height:1.6;">
                         <div style="display:flex; justify-content:space-between;"><span>Password:</span><b style="color:var(--accent); font-family:monospace;">${d.password}</b></div>
                         <div style="display:flex; justify-content:space-between;"><span>IP Address:</span><b style="color:#fff; font-family:monospace;">${d.last_ip || 'Unknown'}</b></div>
+                        <div style="display:flex; justify-content:space-between;"><span>Device:</span><b style="color:#fff;">${d.device_info || 'Mobile'}</b></div>
                         <div style="display:flex; justify-content:space-between;"><span>Versi APK:</span><b style="color:#fff;">${d.app_version || '-'}</b></div>
-                        <div style="display:flex; justify-content:space-between; margin-top:5px; padding-top:5px; border-top:1px dashed #222;"><span>Total Playlist:</span><b style="color:#ffaa00;">${playlistsCount} Folder</b></div>
-                        <div style="display:flex; justify-content:space-between;"><span>Total Histori:</span><b style="color:#1db954;">${historyCount} Lagu</b></div>
-                        <div style="display:flex; justify-content:space-between; margin-top:5px; padding-top:5px; border-top:1px dashed #222;"><span>Register:</span><b style="color:#fff; font-size:10px;">${d.register_time}</b></div>
-                        <div style="display:flex; justify-content:space-between;"><span>Login:</span><b style="color:#1db954; font-size:10px;">${d.last_login}</b></div>
+                    </div>
+
+                    <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #222;">
+                        <details style="background:#000a14; padding:8px; border-radius:8px; border:1px dashed #00e5ff; margin-bottom:8px; outline:none;">
+                            <summary style="cursor:pointer; color:#00e5ff; font-size:11px; font-weight:bold; outline:none;">📁 Lihat Daftar Album (${playlistsCount})</summary>
+                            <div style="padding-top:8px; font-size:10px; max-height:120px; overflow-y:auto;">${plHtml}</div>
+                        </details>
+                        <details style="background:#000a14; padding:8px; border-radius:8px; border:1px dashed #1db954; margin-bottom:8px; outline:none;">
+                            <summary style="cursor:pointer; color:#1db954; font-size:11px; font-weight:bold; outline:none;">🕒 Lihat Histori Putar (${historyCount})</summary>
+                            <div style="padding-top:8px; font-size:10px; max-height:120px; overflow-y:auto;">${histHtml}</div>
+                        </details>
+                    </div>
+
+                    <div style="margin-top:10px; display:flex; gap:5px;">
+                        <select id="role_select_${user}" style="background:#111; color:#fff; border:1px solid #1db954; padding:5px; border-radius:5px; font-size:10px; flex-grow:1;">
+                            <option value="Member" ${d.role !== 'Admin' ? 'selected' : ''}>Member</option>
+                            <option value="Admin" ${d.role === 'Admin' ? 'selected' : ''}>Admin</option>
+                        </select>
+                        <button onclick="window.changeUserRole('${user}')" style="background:#1db954; color:#000; border:none; padding:5px 10px; border-radius:5px; font-size:10px; font-weight:bold; cursor:pointer;">UBAH ROLE</button>
                     </div>
                 </div>`;
             });
             document.getElementById('admin-users-list').innerHTML = html;
         } else {
-            window.showToast(res.message || "Akses Ditolak! Anda bukan Admin.", "error");
+            window.showToast("Bukan Admin!", "error");
             document.getElementById('admin-panel-view').classList.remove('active');
         }
     }).catch(e => {
-        window.showToast("Gagal terhubung ke database server", "error");
+        window.showToast("Gagal terhubung", "error");
         document.getElementById('admin-panel-view').classList.remove('active');
+    });
+};
+
+window.changeUserRole = function(targetUser) {
+    let uname = localStorage.getItem('username') || localStorage.getItem('ytpro_username');
+    let upass = localStorage.getItem('password') || localStorage.getItem('ytpro_password');
+    let newRole = document.getElementById(`role_select_${targetUser}`).value;
+    let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
+
+    fetch(apiUrl + '/api/admin/change_role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_user: uname, admin_pass: upass, target_user: targetUser, new_role: newRole })
+    }).then(r => r.json()).then(res => {
+        if(res.status === 'success') {
+            window.showToast(res.message, "success");
+            window.openAdminPanel(); // Auto Refresh UI
+        } else window.showToast(res.message, "error");
     });
 };
 
@@ -1170,12 +1182,9 @@ if (typeof window.oldHandleBackSocialAdmin === 'undefined') {
     window.handleBackButton = function() {
         let adminPanel = document.getElementById('admin-panel-view');
         if(adminPanel && adminPanel.classList.contains('active')) {
-            adminPanel.classList.remove('active');
-            return "handled";
+            adminPanel.classList.remove('active'); return "handled";
         }
-        if(typeof window.oldHandleBackSocialAdmin === 'function') {
-            return window.oldHandleBackSocialAdmin();
-        }
+        if(typeof window.oldHandleBackSocialAdmin === 'function') return window.oldHandleBackSocialAdmin();
         return "exit";
     };
 }
