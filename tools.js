@@ -1294,17 +1294,20 @@ window.switchMovieServer = function(serverNum) {
     let id = window.currentMovieData.id;
     let type = window.currentMovieData.type; // 'movie' atau 'tv'
     
-    // Menggunakan Server Premium Anti-Iklan (Tanpa Pop-up Ganas)
+    // Menggunakan Server Custom Pilihanmu & Server Premium Anti-Iklan
     let embedUrl = '';
     if(serverNum === 1) {
-        // Server 1: Embed.su (Server Paling Bersih & Premium saat ini)
-        embedUrl = type === 'tv' ? `https://embed.su/embed/tv/${id}/1/1` : `https://embed.su/embed/movie/${id}`;
+        // Server 1: Custom Web Link (h5.d9s3x4.com)
+        // Format otomatis menyesuaikan dengan TMDB ID dari database
+        embedUrl = type === 'tv' ? `https://h5.d9s3x4.com/tv/${id}` : `https://h5.d9s3x4.com/movie/${id}`;
+        
+        // (Opsional: Jika servermu butuh format "?id=", kamu cukup ubah kodenya menjadi: `https://h5.d9s3x4.com/?id=${id}`)
     } else if(serverNum === 2) {
-        // Server 2: Vidsrc.cc (Server V2 yang sudah dibersihkan dari Pop-up)
-        embedUrl = type === 'tv' ? `https://vidsrc.cc/v2/embed/tv/${id}/1/1` : `https://vidsrc.cc/v2/embed/movie/${id}`;
+        // Server 2: Embed.su (Server Bersih Cadangan 1)
+        embedUrl = type === 'tv' ? `https://embed.su/embed/tv/${id}/1/1` : `https://embed.su/embed/movie/${id}`;
     } else {
-        // Server 3: Vidsrc.pro (Jalur Super Cepat Cadangan)
-        embedUrl = type === 'tv' ? `https://vidsrc.pro/embed/tv/${id}/1/1` : `https://vidsrc.pro/embed/movie/${id}`;
+        // Server 3: Vidsrc.cc (Server Bersih Cadangan 2)
+        embedUrl = type === 'tv' ? `https://vidsrc.cc/v2/embed/tv/${id}/1/1` : `https://vidsrc.cc/v2/embed/movie/${id}`;
     }
     
     // Tampilkan loading screen sementara iframe memuat
@@ -1313,7 +1316,7 @@ window.switchMovieServer = function(serverNum) {
         iframe.src = embedUrl;
     }, 100);
     
-    window.showToast("Menghubungkan ke Server " + serverNum + " (Bebas Iklan)", "success");
+    window.showToast("Menghubungkan ke Server " + serverNum, "success");
 };
 
 
