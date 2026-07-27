@@ -1023,10 +1023,10 @@ if(typeof window.originalFetchAdmin === 'undefined') {
                 } catch(e) {}
             }
         }
-
+        
         let response = await window.originalFetchAdmin.apply(this, arguments);
         let clone = response.clone();
-
+        
         if(arguments[0] && arguments[0].includes('/api/auth')) {
             clone.json().then(data => {
                 if(data.status === 'success' && data.role) {
@@ -1054,7 +1054,7 @@ window.openAdminPanel = function() {
     let sidebarName = document.getElementById('sidebar-username-txt');
     if (sidebarName && sidebarName.textContent && sidebarName.textContent.trim().toUpperCase() !== "GUEST") uname = sidebarName.textContent.trim();
     if (uname.toUpperCase() === "GUEST") uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
-
+    
     let upass = localStorage.getItem('ytpro_password') || localStorage.getItem('password') || localStorage.getItem('user_pass');
 
     if(!upass) {
@@ -1069,7 +1069,7 @@ window.openAdminPanel = function() {
     let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
 
     document.getElementById('admin-panel-view').classList.add('active');
-    document.getElementById('admin-users-list').innerHTML = '<div style="text-align:center; padding:30px 0;"><p style="color:#00e5ff;font-size:12px;">Membobol Database Server...</p></div>';
+    document.getElementById('admin-users-list').innerHTML = '<div style="text-align:center; padding:30px 0;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#00e5ff;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#00e5ff;font-size:12px;margin-top:10px;">Membobol Database Server...</p></div>';
 
     fetch(apiUrl + '/api/admin/users', {
         method: 'POST',
@@ -1082,17 +1082,30 @@ window.openAdminPanel = function() {
             let users = res.data;
             let uList = Object.keys(users);
             document.getElementById('admin-total-users').innerText = uList.length;
-
+            
+            // Perbaikan Bug Format Tanggal "Online/Offline" agar presisi dengan Python
+            let dObj = new Date();
+            let day = ("0" + dObj.getDate()).slice(-2);
+            let monthList = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            let month = monthList[dObj.getMonth()];
+            let year = dObj.getFullYear();
+            let exactToday = `${day} ${month} ${year}`;
+            
             let html = "";
             uList.forEach(user => {
                 let d = users[user];
                 let avatar = d.avatar ? (apiUrl + d.avatar) : `https://ui-avatars.com/api/?name=${user}&background=002244&color=00e5ff`;
                 let playlistsCount = d.playlists ? Object.keys(d.playlists).length : 0;
-                let historyCount = d.history ? d.history.length : 0;
-                let roleColor = d.role === "Admin" ? "#ff003c" : "#00e5ff";
+                
+                // Perbaikan Bug "(undefined)" di Histori Lagu
+                let historyCount = 0;
+                if(d.history && Array.isArray(d.history)) historyCount = d.history.length;
+                else if(d.history) historyCount = Object.keys(d.history).length;
 
+                let roleColor = d.role === "Admin" ? "#ff003c" : "#00e5ff";
+                
                 let statusDot = '<span style="color:#ff003c;">● Offline</span>';
-                if(d.last_login && (d.last_login.includes(new Date().toLocaleString('en-US', { day: '2-digit', month: 'short' })) || d.last_login.includes("Baru"))) {
+                if(d.last_login && (d.last_login.includes(exactToday) || d.last_login.includes("Baru"))) {
                     statusDot = '<span style="color:#1db954;">● Online</span>';
                 }
 
@@ -1104,14 +1117,14 @@ window.openAdminPanel = function() {
 
                 // Render History Dropdown
                 let histHtml = '';
-                if(historyCount > 0) {
+                if(historyCount > 0 && Array.isArray(d.history)) {
                     let hArr = d.history.slice().reverse();
                     hArr.forEach(h => {
                         let t = h.title || h; let a = h.artist || '';
                         histHtml += `<div style="margin-bottom:4px; border-bottom:1px solid #111; padding-bottom:2px;"><span style="color:#1db954;">▶</span> <span style="color:#fff;">${t}</span> <span style="color:#888;">${a ? '— '+a : ''}</span></div>`;
                     });
                 } else histHtml = '<span style="color:#888;">Kosong</span>';
-
+                
                 html += `
                 <div style="background:#050505; border:1px solid #222; border-radius:10px; padding:15px; text-align:left; margin-bottom:10px;">
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px; border-bottom:1px solid #111; padding-bottom:12px;">
@@ -1168,27 +1181,18 @@ window.openAdminPanel = function() {
 window.changeUserRole = function(targetUser) {
     let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user');
     let upass = localStorage.getItem('ytpro_password') || localStorage.getItem('password') || localStorage.getItem('user_pass');
-    
-    let selectEl = document.getElementById('role_select_' + targetUser);
-    if(!selectEl) return;
-    
-    let newRole = selectEl.value;
+    let newRole = document.getElementById(`role_select_${targetUser}`).value;
     let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
 
     fetch(apiUrl + '/api/admin/change_role', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ admin_user: uname, admin_pass: upass, target_user: targetUser, new_role: newRole })
-    })
-    .then(r => {
-        if (!r.ok) throw new Error("Endpoint 404 (Python Server belum ter-update)");
-        return r.json();
-    })
-    .then(res => {
+    }).then(r => r.json()).then(res => {
         if(res.status === 'success') {
             window.showToast(res.message, "success");
-            let badge = document.getElementById('role_badge_' + targetUser);
-            let img = document.getElementById('role_img_' + targetUser);
+            let badge = document.getElementById(`role_badge_${targetUser}`);
+            let img = document.getElementById(`role_img_${targetUser}`);
             if(badge) {
                 badge.innerText = newRole;
                 badge.style.background = newRole === 'Admin' ? '#ff003c' : '#00e5ff';
@@ -1196,14 +1200,9 @@ window.changeUserRole = function(targetUser) {
             if(img) {
                 img.style.borderColor = newRole === 'Admin' ? '#ff003c' : '#00e5ff';
             }
-        } else {
-            window.showToast(res.message || "Gagal mengubah role", "error");
-        }
-    }).catch(e => {
-        window.showToast("Koneksi Error: " + e.message, "error");
-    });
+        } else window.showToast(res.message || "Gagal mengubah role", "error");
+    }).catch(e => window.showToast("Server error", "error"));
 };
-
 
 if (typeof window.oldHandleBackSocialAdmin === 'undefined') {
     window.oldHandleBackSocialAdmin = window.handleBackButton;
@@ -1219,6 +1218,7 @@ if (typeof window.oldHandleBackSocialAdmin === 'undefined') {
         return "exit";
     };
 }
+
 // =========================================================================
 // 14. MOVIE & TV SHOW WATCHER (WATCHMODE API INTEGRATION)
 // =========================================================================
