@@ -878,135 +878,10 @@ setInterval(function() {
 }, 1000);
 
 // =========================================================================
-// 12. MESIN UPDATE PROFILE & UPLOAD AVATAR (STRICT LOCAL MEMORY)
-// =========================================================================
-window.selectedAvatarBase64 = null;
-
-setTimeout(() => {
-    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
-    let avatarPath = localStorage.getItem('ytpro_avatar') || "";
-    let finalAvatarUrl = `https://ui-avatars.com/api/?name=${uname}&background=002244&color=00e5ff`;
-
-    if (avatarPath && typeof PTERODACTYL_API_URL !== 'undefined') {
-        finalAvatarUrl = PTERODACTYL_API_URL + avatarPath;
-    }
-    let hImg = document.getElementById('header-avatar-img');
-    if(hImg) hImg.src = finalAvatarUrl;
-}, 3000);
-
-window.openProfileView = function() {
-    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
-
-    if(uname.toUpperCase() === "GUEST") {
-        window.showToast("Sesi habis! Silakan Login ke akun kamu dulu ya sayang.", "error");
-        let authModal = document.getElementById('auth-modal');
-        if(authModal) authModal.classList.add('show');
-        return;
-    }
-
-    document.getElementById('profile-username-txt').innerText = uname;
-    document.getElementById('profile-reg-txt').innerText = "Status: Akun Aktif";
-    document.getElementById('profile-login-txt').innerText = "Terkoneksi ke Server Utama";
-
-    let avatarPath = localStorage.getItem('ytpro_avatar') || "";
-    let finalUrl = avatarPath && typeof PTERODACTYL_API_URL !== 'undefined' ? (PTERODACTYL_API_URL + avatarPath) : `https://ui-avatars.com/api/?name=${uname}&background=002244&color=00e5ff`;
-
-    document.getElementById('profile-avatar-img').src = finalUrl;
-    window.selectedAvatarBase64 = null; 
-    document.getElementById('profile-old-pass').value = '';
-    document.getElementById('profile-new-pass').value = '';
-
-    document.getElementById('profile-view').classList.add('active');
-};
-
-window.handleAvatarSelect = function(event) {
-    let file = event.target.files[0];
-    if(file) {
-        if(file.size > 3000000) { 
-            window.showToast("Ukuran foto maksimal 3MB!", "error");
-            return;
-        }
-        let reader = new FileReader();
-        reader.onload = function(e) {
-            window.selectedAvatarBase64 = e.target.result; 
-            document.getElementById('profile-avatar-img').src = window.selectedAvatarBase64; 
-            window.showToast("Foto siap! Silakan klik simpan.", "info");
-        };
-        reader.readAsDataURL(file);
-    }
-};
-
-window.updateProfileData = function() {
-    let uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user');
-    let oldPass = document.getElementById('profile-old-pass').value.trim();
-    let newPass = document.getElementById('profile-new-pass').value.trim();
-
-    if(!uname || uname.toUpperCase() === "GUEST") {
-        window.showToast("Akses ditolak! Silakan login terlebih dahulu.", "error");
-        return;
-    }
-    if(!oldPass) {
-        window.showToast("Autentikasi gagal. Data password tidak terbaca di memori!", "error");
-        return;
-    }
-
-    let btn = document.getElementById('btn-save-profile');
-    btn.innerText = "MENYIMPAN..."; btn.disabled = true;
-
-    let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
-
-    fetch(apiUrl + '/api/update_profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            username: uname,
-            password: oldPass,
-            new_password: newPass,
-            avatar_b64: window.selectedAvatarBase64
-        })
-    })
-    .then(r => r.json())
-    .then(res => {
-        btn.innerText = "SIMPAN PERUBAHAN"; btn.disabled = false;
-        if(res.status === 'success') {
-            window.showToast("Profile & Avatar Berhasil Diperbarui!", "success");
-            if(newPass) {
-                localStorage.setItem('ytpro_password', newPass);
-                localStorage.setItem('password', newPass); 
-            }
-            if(res.avatar) {
-                localStorage.setItem('ytpro_avatar', res.avatar);
-                document.getElementById('header-avatar-img').src = apiUrl + res.avatar;
-            }
-            document.getElementById('profile-view').classList.remove('active');
-        } else {
-            window.showToast(res.message || "Gagal menyimpan. Password salah?", "error");
-        }
-    }).catch(e => {
-        btn.innerText = "SIMPAN PERUBAHAN"; btn.disabled = false;
-        window.showToast("Gagal terhubung ke server!", "error");
-    });
-};
-
-if (typeof window.oldHandleBackSocialProfile === 'undefined') {
-    window.oldHandleBackSocialProfile = window.handleBackButton;
-    window.handleBackButton = function() {
-        let profilePanel = document.getElementById('profile-view');
-        if(profilePanel && profilePanel.classList.contains('active')) {
-            profilePanel.classList.remove('active');
-            return "handled";
-        }
-        if(typeof window.oldHandleBackSocialProfile === 'function') {
-            return window.oldHandleBackSocialProfile();
-        }
-        return "exit";
-    };
-}
-// =========================================================================
-// 13. ADMIN PANEL SYSTEM & DASHBOARD ROLE (ULTIMATE FIX & REALTIME STATUS)
+// KUMPULAN UPDATE X-TUNE V11 (ADMIN REALTIME, MOVIE, AVATAR & PROFILE FIX)
 // =========================================================================
 
-// Inject Device Info
+// --- 1. ADMIN PANEL SYSTEM & DASHBOARD ROLE (REALTIME STATUS) ---
 if(typeof window.originalFetchAdmin === 'undefined') {
     window.originalFetchAdmin = window.fetch;
     window.fetch = async function() {
@@ -1022,16 +897,13 @@ if(typeof window.originalFetchAdmin === 'undefined') {
                 } catch(e) {}
             }
         }
-        
         let response = await window.originalFetchAdmin.apply(this, arguments);
         let clone = response.clone();
-        
         if(arguments[0] && arguments[0].includes('/api/auth')) {
             clone.json().then(data => {
                 if(data.status === 'success' && data.role) {
                     localStorage.setItem('ytpro_role', data.role);
-                    let roleEl = document.getElementById('dash-role');
-                    if(roleEl) roleEl.innerText = data.role;
+                    let roleEl = document.getElementById('dash-role'); if(roleEl) roleEl.innerText = data.role;
                     let adminBtn = document.getElementById('btn-sidebar-admin');
                     if(adminBtn) adminBtn.style.display = (data.role === "Admin") ? 'flex' : 'none';
                 }
@@ -1053,41 +925,30 @@ window.openAdminPanel = function() {
     let sidebarName = document.getElementById('sidebar-username-txt');
     if (sidebarName && sidebarName.textContent && sidebarName.textContent.trim().toUpperCase() !== "GUEST") uname = sidebarName.textContent.trim();
     if (uname.toUpperCase() === "GUEST") uname = localStorage.getItem('ytpro_username') || localStorage.getItem('username') || localStorage.getItem('user') || "Guest";
-    
     let upass = localStorage.getItem('ytpro_password') || localStorage.getItem('password') || localStorage.getItem('user_pass');
 
     if(!upass) {
         upass = prompt("Keamanan Server: Masukkan Password Admin Anda:", "");
         if(!upass) { window.showToast("Akses dibatalkan.", "error"); return; }
-        localStorage.setItem('password', upass);
-        localStorage.setItem('ytpro_password', upass);
+        localStorage.setItem('password', upass); localStorage.setItem('ytpro_password', upass);
     }
-
     if(uname.toUpperCase() === "GUEST") { window.showToast("Akses ditolak! Silakan Login ulang.", "error"); return; }
 
     let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
-
     document.getElementById('admin-panel-view').classList.add('active');
     document.getElementById('admin-users-list').innerHTML = '<div style="text-align:center; padding:30px 0;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#00e5ff;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#00e5ff;font-size:12px;margin-top:10px;">Membobol Database Server...</p></div>';
 
     fetch(apiUrl + '/api/admin/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: uname, password: upass })
-    })
-    .then(r => r.json())
-    .then(res => {
+    }).then(r => r.json()).then(res => {
         if(res.status === 'success' && res.data) {
-            let users = res.data;
-            let uList = Object.keys(users);
+            let users = res.data; let uList = Object.keys(users);
             document.getElementById('admin-total-users').innerText = uList.length;
             
-            // Format Tanggal Hari Ini untuk Pencocokan
-            let dObj = new Date();
-            let day = ("0" + dObj.getDate()).slice(-2);
+            let dObj = new Date(); let day = ("0" + dObj.getDate()).slice(-2);
             let monthList = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            let month = monthList[dObj.getMonth()];
-            let year = dObj.getFullYear();
+            let month = monthList[dObj.getMonth()]; let year = dObj.getFullYear();
             let exactToday = `${day} ${month} ${year}`;
             let fallbackToday = dObj.toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'});
             
@@ -1096,33 +957,21 @@ window.openAdminPanel = function() {
                 let d = users[user];
                 let avatar = d.avatar ? (apiUrl + d.avatar) : `https://ui-avatars.com/api/?name=${user}&background=002244&color=00e5ff`;
                 let playlistsCount = d.playlists ? Object.keys(d.playlists).length : 0;
-                
                 let historyCount = 0;
                 if(d.history && Array.isArray(d.history)) historyCount = d.history.length;
                 else if(d.history) historyCount = Object.keys(d.history).length;
 
                 let roleColor = d.role === "Admin" ? "#ff003c" : "#00e5ff";
-                
-                // SISTEM DETEKSI REAL-TIME STATUS
                 let isOnline = false;
-                // 1. Cek apakah tanggal login = hari ini
-                if(d.last_login && (d.last_login.includes(exactToday) || d.last_login.includes(fallbackToday) || d.last_login.includes("Baru"))) {
-                    isOnline = true;
-                }
-                // 2. REAL-TIME OVERRIDE: Jika akun yang dicek adalah akun yang sedang buka panel ini, PASTI ONLINE!
-                if(user.toUpperCase() === uname.toUpperCase()) {
-                    isOnline = true;
-                }
-
+                if(d.last_login && (d.last_login.includes(exactToday) || d.last_login.includes(fallbackToday) || d.last_login.includes("Baru"))) isOnline = true;
+                if(user.toUpperCase() === uname.toUpperCase()) isOnline = true;
                 let statusDot = isOnline ? '<span style="color:#1db954;">● Online (Aktif)</span>' : '<span style="color:#ff003c;">● Offline</span>';
 
-                // Render Playlist Dropdown
                 let plHtml = '';
                 if(playlistsCount > 0) {
                     for(let pl in d.playlists) plHtml += `<div style="margin-bottom:4px;"><span style="color:#ffaa00; font-weight:bold;">• ${pl}</span> <span style="color:#888;">(${d.playlists[pl].length} Lagu)</span></div>`;
                 } else plHtml = '<span style="color:#888;">Kosong</span>';
 
-                // Render History Dropdown
                 let histHtml = '';
                 if(historyCount > 0 && Array.isArray(d.history)) {
                     let hArr = d.history.slice().reverse();
@@ -1141,19 +990,16 @@ window.openAdminPanel = function() {
                             <p style="margin:2px 0 0 0; font-size:10px; font-weight:bold;">${statusDot}</p>
                         </div>
                     </div>
-                    
                     <div style="font-size:11px; color:#aaa; line-height:1.6;">
                         <div style="display:flex; justify-content:space-between;"><span>Password:</span><b style="color:var(--accent); font-family:monospace;">${d.password}</b></div>
                         <div style="display:flex; justify-content:space-between;"><span>IP Address:</span><b style="color:#fff; font-family:monospace;">${d.last_ip || 'Unknown'}</b></div>
                         <div style="display:flex; justify-content:space-between;"><span>Device Info:</span><b style="color:#fff;">${d.device_info || 'Mobile'}</b></div>
                         <div style="display:flex; justify-content:space-between;"><span>Versi APK:</span><b style="color:#fff;">${d.app_version || '-'}</b></div>
                     </div>
-
                     <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #222;">
                         <div style="display:flex; justify-content:space-between;"><span>Register:</span><b style="color:#fff; font-size:10px;">${d.register_time || '-'}</b></div>
                         <div style="display:flex; justify-content:space-between;"><span>Aktivitas Terakhir:</span><b style="color:#1db954; font-size:10px;">${d.last_login || '-'}</b></div>
                     </div>
-
                     <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #222;">
                         <details style="background:#000a14; padding:8px; border-radius:8px; border:1px dashed #00e5ff; margin-bottom:8px; outline:none;">
                             <summary style="cursor:pointer; color:#00e5ff; font-size:11px; font-weight:bold; outline:none;">📁 Lihat Daftar Album (${playlistsCount})</summary>
@@ -1164,7 +1010,6 @@ window.openAdminPanel = function() {
                             <div style="padding-top:8px; font-size:10px; max-height:120px; overflow-y:auto;">${histHtml}</div>
                         </details>
                     </div>
-
                     <div style="margin-top:10px; display:flex; gap:5px;">
                         <select id="role_select_${user}" style="background:#111; color:#fff; border:1px solid #1db954; padding:5px; border-radius:5px; font-size:10px; flex-grow:1;">
                             <option value="Member" ${d.role !== 'Admin' ? 'selected' : ''}>Member</option>
@@ -1176,12 +1021,10 @@ window.openAdminPanel = function() {
             });
             document.getElementById('admin-users-list').innerHTML = html;
         } else {
-            window.showToast("Bukan Admin!", "error");
-            document.getElementById('admin-panel-view').classList.remove('active');
+            window.showToast("Bukan Admin!", "error"); document.getElementById('admin-panel-view').classList.remove('active');
         }
     }).catch(e => {
-        window.showToast("Gagal terhubung ke API", "error");
-        document.getElementById('admin-panel-view').classList.remove('active');
+        window.showToast("Gagal terhubung ke API", "error"); document.getElementById('admin-panel-view').classList.remove('active');
     });
 };
 
@@ -1190,23 +1033,15 @@ window.changeUserRole = function(targetUser) {
     let upass = localStorage.getItem('ytpro_password') || localStorage.getItem('password') || localStorage.getItem('user_pass');
     let newRole = document.getElementById(`role_select_${targetUser}`).value;
     let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
-
     fetch(apiUrl + '/api/admin/change_role', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ admin_user: uname, admin_pass: upass, target_user: targetUser, new_role: newRole })
     }).then(r => r.json()).then(res => {
         if(res.status === 'success') {
             window.showToast(res.message, "success");
-            let badge = document.getElementById(`role_badge_${targetUser}`);
-            let img = document.getElementById(`role_img_${targetUser}`);
-            if(badge) {
-                badge.innerText = newRole;
-                badge.style.background = newRole === 'Admin' ? '#ff003c' : '#00e5ff';
-            }
-            if(img) {
-                img.style.borderColor = newRole === 'Admin' ? '#ff003c' : '#00e5ff';
-            }
+            let badge = document.getElementById(`role_badge_${targetUser}`); let img = document.getElementById(`role_img_${targetUser}`);
+            if(badge) { badge.innerText = newRole; badge.style.background = newRole === 'Admin' ? '#ff003c' : '#00e5ff'; }
+            if(img) img.style.borderColor = newRole === 'Admin' ? '#ff003c' : '#00e5ff';
         } else window.showToast(res.message || "Gagal mengubah role", "error");
     }).catch(e => window.showToast("Server error", "error"));
 };
@@ -1215,50 +1050,29 @@ if (typeof window.oldHandleBackSocialAdmin === 'undefined') {
     window.oldHandleBackSocialAdmin = window.handleBackButton;
     window.handleBackButton = function() {
         let adminPanel = document.getElementById('admin-panel-view');
-        if(adminPanel && adminPanel.classList.contains('active')) {
-            adminPanel.classList.remove('active');
-            return "handled";
-        }
-        if(typeof window.oldHandleBackSocialAdmin === 'function') {
-            return window.oldHandleBackSocialAdmin();
-        }
+        if(adminPanel && adminPanel.classList.contains('active')) { adminPanel.classList.remove('active'); return "handled"; }
+        if(typeof window.oldHandleBackSocialAdmin === 'function') return window.oldHandleBackSocialAdmin();
         return "exit";
     };
 }
 
-// =========================================================================
-// 14. MOVIE & TV SHOW WATCHER (WATCHMODE API INTEGRATION)
-// =========================================================================
-
-window.openMovieTool = function() {
-    document.getElementById('movie-tool-view').classList.add('active');
-};
-window.closeMovieTool = function() {
-    document.getElementById('movie-tool-view').classList.remove('active');
-};
-
+// --- 2. MOVIE WATCHER (WATCHMODE API) ---
+window.openMovieTool = function() { document.getElementById('movie-tool-view').classList.add('active'); };
+window.closeMovieTool = function() { document.getElementById('movie-tool-view').classList.remove('active'); };
 window.searchMovieApi = function() {
     let query = document.getElementById('movie-search-input').value.trim();
     let resDiv = document.getElementById('movie-search-results');
     if(!query) return;
-
     resDiv.innerHTML = '<div style="text-align:center;padding:20px;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#e50914;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#888;font-size:12px;margin-top:10px;">Menyisir Watchmode Database...</p></div>';
-
-    // Menggunakan API Key Watchmode yang kamu berikan
     let watchmodeKey = '905ANXbz9Af3LrPnTnjvGBLKfhs5azVatXPODtyF';
-    
     fetch(`https://api.watchmode.com/v1/search/?apiKey=${watchmodeKey}&search_field=name&search_value=${encodeURIComponent(query)}`)
-    .then(res => res.json())
-    .then(data => {
+    .then(res => res.json()).then(data => {
         resDiv.innerHTML = '';
         if(data.title_results && data.title_results.length > 0) {
             let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
             data.title_results.forEach(movie => {
-                let title = movie.name.replace(/'/g, "\\'");
-                let id = movie.id;
-                let type = movie.type === 'tv_series' ? 'TV Series' : 'Movie';
-                let year = movie.year || 'N/A';
-                
+                let title = movie.name.replace(/'/g, "\\'"); let id = movie.id;
+                let type = movie.type === 'tv_series' ? 'TV Series' : 'Movie'; let year = movie.year || 'N/A';
                 html += `
                 <div class="card slide-up" onclick="window.showWatchmodeSources('${id}', '${title}')" style="border-color:#e50914; background:#000a14; padding:10px; cursor:pointer;">
                     <div class="card-info" style="flex-grow:1;">
@@ -1268,33 +1082,21 @@ window.searchMovieApi = function() {
                     <div style="color:#e50914; font-size:18px; font-weight:bold;">▶</div>
                 </div>`;
             });
-            html += '</div>';
-            resDiv.innerHTML = html;
-        } else {
-            resDiv.innerHTML = '<p style="color:#666;text-align:center;font-size:12px;">Film tidak ditemukan di server Watchmode.</p>';
-        }
-    }).catch(err => {
-        resDiv.innerHTML = '<p style="color:var(--primary);text-align:center;font-size:12px;">Gagal terhubung ke Watchmode API.</p>';
-    });
+            html += '</div>'; resDiv.innerHTML = html;
+        } else resDiv.innerHTML = '<p style="color:#666;text-align:center;font-size:12px;">Film tidak ditemukan di server Watchmode.</p>';
+    }).catch(err => resDiv.innerHTML = '<p style="color:var(--primary);text-align:center;font-size:12px;">Gagal terhubung ke Watchmode API.</p>');
 };
 
 window.showWatchmodeSources = function(id, title) {
     document.getElementById('movie-player-title').innerText = title;
     document.getElementById('movie-player-modal').classList.add('show');
-    
     let iframeContainer = document.getElementById('movie-video-wrapper');
-    // Bersihkan Iframe dan ubah menjadi panel teks informasi
     iframeContainer.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%;"><p style="color:#888; font-size:12px;">Mencari sumber platform legal...</p></div>';
-
     let watchmodeKey = '905ANXbz9Af3LrPnTnjvGBLKfhs5azVatXPODtyF';
-    
     fetch(`https://api.watchmode.com/v1/title/${id}/sources/?apiKey=${watchmodeKey}`)
-    .then(res => res.json())
-    .then(data => {
+    .then(res => res.json()).then(data => {
         if(data && data.length > 0) {
             let sourcesHtml = '<div style="padding:20px; text-align:left; overflow-y:auto; height:100%; box-sizing:border-box;"><h4 style="color:#e50914; margin-top:0; border-bottom:1px solid #333; padding-bottom:10px;">Tersedia secara resmi di platform:</h4><ul style="color:#ccc; font-size:13px; line-height:2; padding-left:20px; margin:0;">';
-            
-            // Menyaring duplikat platform
             let seen = new Set();
             data.forEach(src => {
                 if(!seen.has(src.name)) {
@@ -1303,157 +1105,75 @@ window.showWatchmodeSources = function(id, title) {
                     sourcesHtml += `<li><b style="color:#fff;">${src.name}</b> (${typeLayanan}) - <a href="${src.web_url}" target="_blank" style="color:#00e5ff; text-decoration:none; font-weight:bold;">Buka Link ❯</a></li>`;
                 }
             });
-            
-            sourcesHtml += '</ul></div>';
-            iframeContainer.innerHTML = sourcesHtml;
-        } else {
-            iframeContainer.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%; padding:20px; text-align:center;"><p style="color:#aaa; font-size:13px;">Tidak ada informasi platform legal (Streaming/Sewa/Beli) untuk wilayah ini.</p></div>';
-        }
-    }).catch(err => {
-         iframeContainer.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%;"><p style="color:#ff003c; font-size:13px; font-weight:bold;">Gagal memuat sumber data dari Watchmode.</p></div>';
-    });
+            sourcesHtml += '</ul></div>'; iframeContainer.innerHTML = sourcesHtml;
+        } else iframeContainer.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%; padding:20px; text-align:center;"><p style="color:#aaa; font-size:13px;">Tidak ada informasi platform legal (Streaming/Sewa/Beli) untuk wilayah ini.</p></div>';
+    }).catch(err => iframeContainer.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%;"><p style="color:#ff003c; font-size:13px; font-weight:bold;">Gagal memuat sumber data dari Watchmode.</p></div>');
 };
 
-window.closeMoviePlayer = function() {
-    document.getElementById('movie-player-modal').classList.remove('show');
-};
-
-// Pencegat tombol back khusus movie panel
+window.closeMoviePlayer = function() { document.getElementById('movie-player-modal').classList.remove('show'); };
 if (typeof window.oldHandleBackSocialMovie === 'undefined') {
     window.oldHandleBackSocialMovie = window.handleBackButton;
     window.handleBackButton = function() {
         let moviePlayer = document.getElementById('movie-player-modal');
-        if(moviePlayer && moviePlayer.classList.contains('show')) {
-            window.closeMoviePlayer();
-            return "handled";
-        }
+        if(moviePlayer && moviePlayer.classList.contains('show')) { window.closeMoviePlayer(); return "handled"; }
         let moviePanel = document.getElementById('movie-tool-view');
-        if(moviePanel && moviePanel.classList.contains('active')) {
-            window.closeMovieTool();
-            return "handled";
-        }
-        if(typeof window.oldHandleBackSocialMovie === 'function') {
-            return window.oldHandleBackSocialMovie();
-        }
+        if(moviePanel && moviePanel.classList.contains('active')) { window.closeMovieTool(); return "handled"; }
+        if(typeof window.oldHandleBackSocialMovie === 'function') return window.oldHandleBackSocialMovie();
         return "exit";
     };
 }
-// =========================================================================
-// 15. SISTEM AVATAR OFFLINE & AUTO-LOAD
-// =========================================================================
 
+// --- 3. AVATAR OFFLINE & AUTO-LOAD ---
 window.handleAvatarSelect = function(event) {
-    let file = event.target.files[0];
-    if (!file) return;
-
+    let file = event.target.files[0]; if (!file) return;
     let reader = new FileReader();
     reader.onload = function(e) {
-        // Mengubah gambar menjadi kode teks murni (Base64)
         let base64String = e.target.result;
-        
-        // 1. Tampilkan langsung di UI (Header & Profile Modal)
-        let headerImg = document.getElementById('header-avatar-img');
-        let profileImg = document.getElementById('profile-avatar-img');
-        if(headerImg) headerImg.src = base64String;
-        if(profileImg) profileImg.src = base64String;
-
-        // 2. SIMPAN KE MEMORI INTERNAL HP (OFFLINE SAFE)
+        let headerImg = document.getElementById('header-avatar-img'); let profileImg = document.getElementById('profile-avatar-img');
+        if(headerImg) headerImg.src = base64String; if(profileImg) profileImg.src = base64String;
         localStorage.setItem('ytpro_offline_avatar', base64String);
-        
         window.showToast("Foto Profil disuntik ke memori HP!", "success");
     };
     reader.readAsDataURL(file);
 };
-
-// Fungsi untuk Auto-Load Avatar saat aplikasi baru dibuka (Bisa saat Offline total!)
 window.loadOfflineAvatar = function() {
     let savedAvatar = localStorage.getItem('ytpro_offline_avatar');
     if (savedAvatar) {
-        let headerImg = document.getElementById('header-avatar-img');
-        let profileImg = document.getElementById('profile-avatar-img');
-        if(headerImg) headerImg.src = savedAvatar;
-        if(profileImg) profileImg.src = savedAvatar;
+        let headerImg = document.getElementById('header-avatar-img'); let profileImg = document.getElementById('profile-avatar-img');
+        if(headerImg) headerImg.src = savedAvatar; if(profileImg) profileImg.src = savedAvatar;
     }
 };
-
-// Eksekusi pemanggilan gambar secara otomatis saat script dimuat
 setTimeout(window.loadOfflineAvatar, 1000);
 
-// =========================================================================
-// 16. PROFILE PANEL FIX (SISTEM BUKA PROFIL & ANTI-LOGOUT)
-// =========================================================================
-
+// --- 4. PROFILE PANEL FIX (ANTI-LOGOUT) ---
 window.openProfileView = function() {
-    // Cegah error: Kalau masih mode Guest, suruh login dulu
     let uname = localStorage.getItem('ytpro_user');
     if (!uname || uname.toUpperCase() === "GUEST") {
         window.showToast("Silakan Login terlebih dahulu di menu Sidebar!", "error");
-        document.getElementById('auth-modal').classList.add('show');
-        return;
+        document.getElementById('auth-modal').classList.add('show'); return;
     }
-    
-    // Update teks UI Profile sesuai akun yang sedang login
-    let profileUname = document.getElementById('profile-username-txt');
-    let profileReg = document.getElementById('profile-reg-txt');
-    let profileLogin = document.getElementById('profile-login-txt');
-    
+    let profileUname = document.getElementById('profile-username-txt'); let profileReg = document.getElementById('profile-reg-txt'); let profileLogin = document.getElementById('profile-login-txt');
     if(profileUname) profileUname.innerText = uname;
     if(profileReg) profileReg.innerText = "Terdaftar: " + (localStorage.getItem('ytpro_install_date') || "Data Lama");
     if(profileLogin) profileLogin.innerText = "Login Terakhir: " + (localStorage.getItem('ytpro_login_time') || "Baru saja");
-    
-    // Buka Panel Profil dengan mulus
     document.getElementById('profile-view').classList.add('active');
 };
-
-window.closeProfileView = function() {
-    // Tutup Panel Profil
-    document.getElementById('profile-view').classList.remove('active');
-};
-
+window.closeProfileView = function() { document.getElementById('profile-view').classList.remove('active'); };
 window.updateProfileData = function() {
-    let uname = localStorage.getItem('ytpro_user');
-    let oldPass = document.getElementById('profile-old-pass').value;
-    let newPass = document.getElementById('profile-new-pass').value;
+    let uname = localStorage.getItem('ytpro_user'); let oldPass = document.getElementById('profile-old-pass').value; let newPass = document.getElementById('profile-new-pass').value;
     let avatarBase64 = localStorage.getItem('ytpro_offline_avatar') || "";
-
-    if (!uname) {
-        window.showToast("Sesi habis, silakan login ulang", "error");
-        return;
-    }
-
-    let btn = document.getElementById('btn-save-profile');
-    if(btn) btn.innerText = "MENYIMPAN...";
-
-    // Tembak data ke Server Pterodactyl
+    if (!uname) { window.showToast("Sesi habis, silakan login ulang", "error"); return; }
+    let btn = document.getElementById('btn-save-profile'); if(btn) btn.innerText = "MENYIMPAN...";
     let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
     fetch(apiUrl + '/api/update_profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            username: uname, 
-            password: oldPass, 
-            new_password: newPass, 
-            avatar_b64: avatarBase64 
-        })
-    })
-    .then(r => r.json())
-    .then(res => {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: uname, password: oldPass, new_password: newPass, avatar_b64: avatarBase64 })
+    }).then(r => r.json()).then(res => {
         if(btn) btn.innerText = "SIMPAN PERUBAHAN";
         if (res.status === 'success') {
             window.showToast("Profil berhasil diperbarui ke Server!", "success");
-            if (newPass) {
-                // Update password di memori lokal agar tidak ter-logout
-                localStorage.setItem('ytpro_password', newPass);
-                localStorage.setItem('password', newPass);
-            }
-            document.getElementById('profile-new-pass').value = "";
-            window.closeProfileView();
-        } else {
-            window.showToast(res.message || "Gagal memperbarui profil", "error");
-        }
-    })
-    .catch(e => {
-        if(btn) btn.innerText = "SIMPAN PERUBAHAN";
-        window.showToast("Gagal terhubung ke server", "error");
-    });
+            if (newPass) { localStorage.setItem('ytpro_password', newPass); localStorage.setItem('password', newPass); }
+            document.getElementById('profile-new-pass').value = ""; window.closeProfileView();
+        } else window.showToast(res.message || "Gagal memperbarui profil", "error");
+    }).catch(e => { if(btn) btn.innerText = "SIMPAN PERUBAHAN"; window.showToast("Gagal terhubung ke server", "error"); });
 };
