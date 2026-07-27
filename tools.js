@@ -1338,3 +1338,43 @@ if (typeof window.oldHandleBackSocialMovie === 'undefined') {
         return "exit";
     };
 }
+// =========================================================================
+// 15. SISTEM AVATAR OFFLINE & AUTO-LOAD
+// =========================================================================
+
+window.handleAvatarSelect = function(event) {
+    let file = event.target.files[0];
+    if (!file) return;
+
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        // Mengubah gambar menjadi kode teks murni (Base64)
+        let base64String = e.target.result;
+        
+        // 1. Tampilkan langsung di UI (Header & Profile Modal)
+        let headerImg = document.getElementById('header-avatar-img');
+        let profileImg = document.getElementById('profile-avatar-img');
+        if(headerImg) headerImg.src = base64String;
+        if(profileImg) profileImg.src = base64String;
+
+        // 2. SIMPAN KE MEMORI INTERNAL HP (OFFLINE SAFE)
+        localStorage.setItem('ytpro_offline_avatar', base64String);
+        
+        window.showToast("Foto Profil disuntik ke memori HP!", "success");
+    };
+    reader.readAsDataURL(file);
+};
+
+// Fungsi untuk Auto-Load Avatar saat aplikasi baru dibuka (Bisa saat Offline total!)
+window.loadOfflineAvatar = function() {
+    let savedAvatar = localStorage.getItem('ytpro_offline_avatar');
+    if (savedAvatar) {
+        let headerImg = document.getElementById('header-avatar-img');
+        let profileImg = document.getElementById('profile-avatar-img');
+        if(headerImg) headerImg.src = savedAvatar;
+        if(profileImg) profileImg.src = savedAvatar;
+    }
+};
+
+// Eksekusi pemanggilan gambar secara otomatis saat script dimuat
+setTimeout(window.loadOfflineAvatar, 1000);
