@@ -1002,9 +1002,8 @@ if (typeof window.oldHandleBackSocialProfile === 'undefined') {
         return "exit";
     };
 }
-
 // =========================================================================
-// 13. ADMIN PANEL SYSTEM & DASHBOARD ROLE (ULTIMATE FIX)
+// 13. ADMIN PANEL SYSTEM & DASHBOARD ROLE (ULTIMATE FIX & REALTIME STATUS)
 // =========================================================================
 
 // Inject Device Info
@@ -1083,13 +1082,14 @@ window.openAdminPanel = function() {
             let uList = Object.keys(users);
             document.getElementById('admin-total-users').innerText = uList.length;
             
-            // Perbaikan Bug Format Tanggal "Online/Offline" agar presisi dengan Python
+            // Format Tanggal Hari Ini untuk Pencocokan
             let dObj = new Date();
             let day = ("0" + dObj.getDate()).slice(-2);
             let monthList = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             let month = monthList[dObj.getMonth()];
             let year = dObj.getFullYear();
             let exactToday = `${day} ${month} ${year}`;
+            let fallbackToday = dObj.toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'});
             
             let html = "";
             uList.forEach(user => {
@@ -1097,17 +1097,24 @@ window.openAdminPanel = function() {
                 let avatar = d.avatar ? (apiUrl + d.avatar) : `https://ui-avatars.com/api/?name=${user}&background=002244&color=00e5ff`;
                 let playlistsCount = d.playlists ? Object.keys(d.playlists).length : 0;
                 
-                // Perbaikan Bug "(undefined)" di Histori Lagu
                 let historyCount = 0;
                 if(d.history && Array.isArray(d.history)) historyCount = d.history.length;
                 else if(d.history) historyCount = Object.keys(d.history).length;
 
                 let roleColor = d.role === "Admin" ? "#ff003c" : "#00e5ff";
                 
-                let statusDot = '<span style="color:#ff003c;">● Offline</span>';
-                if(d.last_login && (d.last_login.includes(exactToday) || d.last_login.includes("Baru"))) {
-                    statusDot = '<span style="color:#1db954;">● Online</span>';
+                // SISTEM DETEKSI REAL-TIME STATUS
+                let isOnline = false;
+                // 1. Cek apakah tanggal login = hari ini
+                if(d.last_login && (d.last_login.includes(exactToday) || d.last_login.includes(fallbackToday) || d.last_login.includes("Baru"))) {
+                    isOnline = true;
                 }
+                // 2. REAL-TIME OVERRIDE: Jika akun yang dicek adalah akun yang sedang buka panel ini, PASTI ONLINE!
+                if(user.toUpperCase() === uname.toUpperCase()) {
+                    isOnline = true;
+                }
+
+                let statusDot = isOnline ? '<span style="color:#1db954;">● Online (Aktif)</span>' : '<span style="color:#ff003c;">● Offline</span>';
 
                 // Render Playlist Dropdown
                 let plHtml = '';
