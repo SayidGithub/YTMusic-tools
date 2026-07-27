@@ -1378,3 +1378,82 @@ window.loadOfflineAvatar = function() {
 
 // Eksekusi pemanggilan gambar secara otomatis saat script dimuat
 setTimeout(window.loadOfflineAvatar, 1000);
+
+// =========================================================================
+// 16. PROFILE PANEL FIX (SISTEM BUKA PROFIL & ANTI-LOGOUT)
+// =========================================================================
+
+window.openProfileView = function() {
+    // Cegah error: Kalau masih mode Guest, suruh login dulu
+    let uname = localStorage.getItem('ytpro_user');
+    if (!uname || uname.toUpperCase() === "GUEST") {
+        window.showToast("Silakan Login terlebih dahulu di menu Sidebar!", "error");
+        document.getElementById('auth-modal').classList.add('show');
+        return;
+    }
+    
+    // Update teks UI Profile sesuai akun yang sedang login
+    let profileUname = document.getElementById('profile-username-txt');
+    let profileReg = document.getElementById('profile-reg-txt');
+    let profileLogin = document.getElementById('profile-login-txt');
+    
+    if(profileUname) profileUname.innerText = uname;
+    if(profileReg) profileReg.innerText = "Terdaftar: " + (localStorage.getItem('ytpro_install_date') || "Data Lama");
+    if(profileLogin) profileLogin.innerText = "Login Terakhir: " + (localStorage.getItem('ytpro_login_time') || "Baru saja");
+    
+    // Buka Panel Profil dengan mulus
+    document.getElementById('profile-view').classList.add('active');
+};
+
+window.closeProfileView = function() {
+    // Tutup Panel Profil
+    document.getElementById('profile-view').classList.remove('active');
+};
+
+window.updateProfileData = function() {
+    let uname = localStorage.getItem('ytpro_user');
+    let oldPass = document.getElementById('profile-old-pass').value;
+    let newPass = document.getElementById('profile-new-pass').value;
+    let avatarBase64 = localStorage.getItem('ytpro_offline_avatar') || "";
+
+    if (!uname) {
+        window.showToast("Sesi habis, silakan login ulang", "error");
+        return;
+    }
+
+    let btn = document.getElementById('btn-save-profile');
+    if(btn) btn.innerText = "MENYIMPAN...";
+
+    // Tembak data ke Server Pterodactyl
+    let apiUrl = typeof PTERODACTYL_API_URL !== 'undefined' ? PTERODACTYL_API_URL : "";
+    fetch(apiUrl + '/api/update_profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            username: uname, 
+            password: oldPass, 
+            new_password: newPass, 
+            avatar_b64: avatarBase64 
+        })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if(btn) btn.innerText = "SIMPAN PERUBAHAN";
+        if (res.status === 'success') {
+            window.showToast("Profil berhasil diperbarui ke Server!", "success");
+            if (newPass) {
+                // Update password di memori lokal agar tidak ter-logout
+                localStorage.setItem('ytpro_password', newPass);
+                localStorage.setItem('password', newPass);
+            }
+            document.getElementById('profile-new-pass').value = "";
+            window.closeProfileView();
+        } else {
+            window.showToast(res.message || "Gagal memperbarui profil", "error");
+        }
+    })
+    .catch(e => {
+        if(btn) btn.innerText = "SIMPAN PERUBAHAN";
+        window.showToast("Gagal terhubung ke server", "error");
+    });
+};
