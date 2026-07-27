@@ -1220,7 +1220,7 @@ if (typeof window.oldHandleBackSocialAdmin === 'undefined') {
     };
 }
 // =========================================================================
-// 14. MOVIE & TV SHOW WATCHER (NETFLIX CLONE ENGINE)
+// 14. MOVIE & TV SHOW WATCHER (WATCHMODE API INTEGRATION)
 // =========================================================================
 
 window.openMovieTool = function() {
@@ -1234,94 +1234,80 @@ window.searchMovieApi = function() {
     let query = document.getElementById('movie-search-input').value.trim();
     let resDiv = document.getElementById('movie-search-results');
     if(!query) return;
+
+    resDiv.innerHTML = '<div style="text-align:center;padding:20px;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#e50914;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#888;font-size:12px;margin-top:10px;">Menyisir Watchmode Database...</p></div>';
+
+    // Menggunakan API Key Watchmode yang kamu berikan
+    let watchmodeKey = '905ANXbz9Af3LrPnTnjvGBLKfhs5azVatXPODtyF';
     
-    resDiv.innerHTML = '<div style="text-align:center;padding:20px;"><svg class="spin-anim" viewBox="0 0 24 24" style="width:30px;height:30px;fill:#e50914;"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><p style="color:#888;font-size:12px;margin-top:10px;">Menembus database film dunia...</p></div>';
-    
-    // Menggunakan TMDB Public Read API untuk Search Meta Data
-    let tmdbKey = '15d2ea6d0dc1d476efbca3eba2b9bbfb'; 
-    fetch(`https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&language=id-ID&query=${encodeURIComponent(query)}`)
+    fetch(`https://api.watchmode.com/v1/search/?apiKey=${watchmodeKey}&search_field=name&search_value=${encodeURIComponent(query)}`)
     .then(res => res.json())
     .then(data => {
         resDiv.innerHTML = '';
-        if(data.results && data.results.length > 0) {
+        if(data.title_results && data.title_results.length > 0) {
             let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
-            data.results.forEach(movie => {
-                if(movie.media_type === 'person') return; // Skip actor profiles
-                
-                let title = (movie.title || movie.name).replace(/'/g, "\\'");
-                let img = movie.poster_path ? `https://image.tmdb.org/t/p/w200${movie.poster_path}` : '';
-                let imgHtml = img ? `<img src="${img}" class="card-img" style="border:1px solid #e50914;">` : `<div class="card-img" style="border:1px solid #e50914; background:#111; display:flex; align-items:center; justify-content:center; font-size:8px;">No IMG</div>`;
+            data.title_results.forEach(movie => {
+                let title = movie.name.replace(/'/g, "\\'");
                 let id = movie.id;
-                let type = movie.media_type === 'tv' ? 'TV Series' : 'Movie';
-                let release = movie.release_date || movie.first_air_date || 'N/A';
-                let score = movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A';
+                let type = movie.type === 'tv_series' ? 'TV Series' : 'Movie';
+                let year = movie.year || 'N/A';
                 
                 html += `
-                <div class="card slide-up" onclick="window.playMovie('${id}', '${title}', '${movie.media_type}')" style="border-color:#e50914; background:#000a14;">
-                    ${imgHtml}
-                    <div class="card-info">
-                        <h3 style="color:#fff;">${movie.title || movie.name}</h3>
-                        <p style="color:#e50914;">${type} • ⭐ ${score} • ${release.substring(0,4)}</p>
+                <div class="card slide-up" onclick="window.showWatchmodeSources('${id}', '${title}')" style="border-color:#e50914; background:#000a14; padding:10px; cursor:pointer;">
+                    <div class="card-info" style="flex-grow:1;">
+                        <h3 style="color:#fff; margin:0 0 5px 0; font-size:14px;">${movie.name}</h3>
+                        <p style="color:#e50914; margin:0; font-size:11px; font-weight:bold;">${type} • Tahun Rilis: ${year}</p>
                     </div>
-                    <div style="color:#e50914; font-size:18px;">▶</div>
+                    <div style="color:#e50914; font-size:18px; font-weight:bold;">▶</div>
                 </div>`;
             });
             html += '</div>';
             resDiv.innerHTML = html;
         } else {
-            resDiv.innerHTML = '<p style="color:#666;text-align:center;font-size:12px;">Film tidak ditemukan di server.</p>';
+            resDiv.innerHTML = '<p style="color:#666;text-align:center;font-size:12px;">Film tidak ditemukan di server Watchmode.</p>';
         }
     }).catch(err => {
-        resDiv.innerHTML = '<p style="color:var(--primary);text-align:center;font-size:12px;">Gagal terhubung ke database API.</p>';
+        resDiv.innerHTML = '<p style="color:var(--primary);text-align:center;font-size:12px;">Gagal terhubung ke Watchmode API.</p>';
     });
 };
 
-window.currentMovieData = { id: '', type: '' };
-
-window.playMovie = function(id, title, type) {
-    window.currentMovieData = { id: id, type: type };
+window.showWatchmodeSources = function(id, title) {
     document.getElementById('movie-player-title').innerText = title;
     document.getElementById('movie-player-modal').classList.add('show');
-    window.switchMovieServer(1); // Auto load Server 1
     
-    // Auto-Pause Musik kalau ada yang lagi diputar
-    let lp = document.getElementById('local-audio-player');
-    if (lp && !lp.paused) { window.togglePlayPause(); }
-};
+    let iframeContainer = document.getElementById('movie-video-wrapper');
+    // Bersihkan Iframe dan ubah menjadi panel teks informasi
+    iframeContainer.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%;"><p style="color:#888; font-size:12px;">Mencari sumber platform legal...</p></div>';
 
-window.switchMovieServer = function(serverNum) {
-    let iframe = document.getElementById('movie-iframe');
-    let id = window.currentMovieData.id;
-    let type = window.currentMovieData.type; // 'movie' atau 'tv'
+    let watchmodeKey = '905ANXbz9Af3LrPnTnjvGBLKfhs5azVatXPODtyF';
     
-    // Menyedot judul film dari UI untuk digunakan sebagai kata kunci pencarian LK21
-    let title = document.getElementById('movie-player-title').innerText;
-    
-    let embedUrl = '';
-    if(serverNum === 1) {
-        // Server 1: Custom Web Link (LK21 Official)
-        // Karena LK21 tidak support TMDB ID, kita gunakan mode injeksi URL pencarian
-        embedUrl = `https://tv12.lk21official.cc/?s=${encodeURIComponent(title)}`;
-    } else if(serverNum === 2) {
-        // Server 2: Embed.su (Server Premium Bersih)
-        embedUrl = type === 'tv' ? `https://embed.su/embed/tv/${id}/1/1` : `https://embed.su/embed/movie/${id}`;
-    } else {
-        // Server 3: Vidsrc.cc (Server Cadangan)
-        embedUrl = type === 'tv' ? `https://vidsrc.cc/v2/embed/tv/${id}/1/1` : `https://vidsrc.cc/v2/embed/movie/${id}`;
-    }
-    
-    // Tampilkan loading screen sementara iframe memuat
-    iframe.src = ""; 
-    setTimeout(() => {
-        iframe.src = embedUrl;
-    }, 100);
-    
-    window.showToast("Menghubungkan ke Server " + serverNum, "success");
+    fetch(`https://api.watchmode.com/v1/title/${id}/sources/?apiKey=${watchmodeKey}`)
+    .then(res => res.json())
+    .then(data => {
+        if(data && data.length > 0) {
+            let sourcesHtml = '<div style="padding:20px; text-align:left; overflow-y:auto; height:100%; box-sizing:border-box;"><h4 style="color:#e50914; margin-top:0; border-bottom:1px solid #333; padding-bottom:10px;">Tersedia secara resmi di platform:</h4><ul style="color:#ccc; font-size:13px; line-height:2; padding-left:20px; margin:0;">';
+            
+            // Menyaring duplikat platform
+            let seen = new Set();
+            data.forEach(src => {
+                if(!seen.has(src.name)) {
+                    seen.add(src.name);
+                    let typeLayanan = src.type === 'sub' ? 'Langganan' : src.type === 'rent' ? 'Sewa' : src.type === 'buy' ? 'Beli' : src.type;
+                    sourcesHtml += `<li><b style="color:#fff;">${src.name}</b> (${typeLayanan}) - <a href="${src.web_url}" target="_blank" style="color:#00e5ff; text-decoration:none; font-weight:bold;">Buka Link ❯</a></li>`;
+                }
+            });
+            
+            sourcesHtml += '</ul></div>';
+            iframeContainer.innerHTML = sourcesHtml;
+        } else {
+            iframeContainer.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%; padding:20px; text-align:center;"><p style="color:#aaa; font-size:13px;">Tidak ada informasi platform legal (Streaming/Sewa/Beli) untuk wilayah ini.</p></div>';
+        }
+    }).catch(err => {
+         iframeContainer.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%;"><p style="color:#ff003c; font-size:13px; font-weight:bold;">Gagal memuat sumber data dari Watchmode.</p></div>';
+    });
 };
-
 
 window.closeMoviePlayer = function() {
-    document.getElementById('movie-iframe').src = ""; // Stop video & audio
     document.getElementById('movie-player-modal').classList.remove('show');
 };
 
